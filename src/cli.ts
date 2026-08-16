@@ -8,6 +8,7 @@ import { auditBundle, simulateTranscript, verifyAudit } from "./simulator.js";
 async function main(args: string[]): Promise<number> {
   const [command = "help", ...rest] = args;
   if (command === "demo") {
+    if (rest.length > 1 || rest[0]?.startsWith("-") === true) throw new Error("usage: trustline-mcp demo [OUT]");
     const out = rest[0] ?? "artifacts/demo";
     const result = simulateTranscript(demoPolicy, attackTranscript);
     await writeArtifacts(out, result);
@@ -15,6 +16,7 @@ async function main(args: string[]): Promise<number> {
     return 0;
   }
   if (command === "simulate") {
+    if (rest.length < 2 || rest.length > 3 || rest.some((value) => value.startsWith("-"))) throw new Error("usage: trustline-mcp simulate POLICY.json TRANSCRIPT.jsonl [OUT]");
     const [policyPath, transcriptPath, out = "artifacts/simulation"] = rest;
     if (policyPath === undefined || transcriptPath === undefined) throw new Error("usage: trustline-mcp simulate POLICY.json TRANSCRIPT.jsonl [OUT]");
     const policy = JSON.parse(await readFile(policyPath, "utf8")) as Policy;
@@ -25,6 +27,7 @@ async function main(args: string[]): Promise<number> {
     return 0;
   }
   if (command === "verify") {
+    if (rest.length !== 1 || rest[0]?.startsWith("-") === true) throw new Error("usage: trustline-mcp verify AUDIT.json");
     const path = rest[0];
     if (path === undefined) throw new Error("usage: trustline-mcp verify AUDIT.json");
     const parsed = JSON.parse(await readFile(path, "utf8")) as unknown;
@@ -32,6 +35,7 @@ async function main(args: string[]): Promise<number> {
     console.log(JSON.stringify(verification));
     return verification.valid ? 0 : 1;
   }
+  if (["help", "--help", "-h"].includes(command) && rest.length > 0) throw new Error("help does not accept operands");
   console.log("trustline-mcp demo [OUT]\ntrustline-mcp simulate POLICY.json TRANSCRIPT.jsonl [OUT]\ntrustline-mcp verify AUDIT.json");
   return command === "help" || command === "--help" || command === "-h" ? 0 : 2;
 }

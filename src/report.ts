@@ -1,6 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { auditBundle, type SimulationResult, verifyAudit } from "./simulator.js";
+import { writeArtifactSet } from "./safe-output.js";
 
 export const REPORT_VERSION = "trustline.report/v1" as const;
 
@@ -20,7 +19,7 @@ export function buildReport(result: SimulationResult) {
   const verification = verifyAudit(auditBundle(result));
   return {
     version: REPORT_VERSION,
-    generatedBy: "trustline-mcp@0.1.0",
+    generatedBy: "trustline-mcp@0.1.1",
     deterministic: true,
     policyName: result.policyName,
     policyDigest: result.policyDigest,
@@ -43,11 +42,10 @@ export function htmlReport(result: SimulationResult): string {
 }
 
 export async function writeArtifacts(outDir: string, result: SimulationResult): Promise<void> {
-  await mkdir(outDir, { recursive: true });
-  await Promise.all([
-    writeFile(join(outDir, "audit.json"), `${JSON.stringify(auditBundle(result), null, 2)}\n`),
-    writeFile(join(outDir, "report.json"), `${JSON.stringify(buildReport(result), null, 2)}\n`),
-    writeFile(join(outDir, "report.md"), markdownReport(result)),
-    writeFile(join(outDir, "index.html"), htmlReport(result)),
-  ]);
+  await writeArtifactSet(outDir, {
+    "audit.json": `${JSON.stringify(auditBundle(result), null, 2)}\n`,
+    "report.json": `${JSON.stringify(buildReport(result), null, 2)}\n`,
+    "report.md": markdownReport(result),
+    "index.html": htmlReport(result),
+  });
 }

@@ -61,6 +61,12 @@ function hasExactKeys(value: Record<string, unknown>, expected: readonly string[
   return actual.length === expected.length && actual.every((key, index) => key === [...expected].sort()[index]);
 }
 
+function isDenseArray(value: unknown): value is unknown[] {
+  return Array.isArray(value)
+    && Object.keys(value).length === value.length
+    && Object.keys(value).every((key, index) => key === String(index));
+}
+
 function isJsonValue(value: unknown, seen = new Set<object>()): boolean {
   if (value === null || typeof value === "string" || typeof value === "boolean") return true;
   if (typeof value === "number") return Number.isFinite(value);
@@ -86,8 +92,8 @@ function isDecision(value: unknown): value is Decision {
   if (!isRecord(value) || !hasExactKeys(value, ["effect", "tool", "reasonCodes", "matchedRuleIds", "quotaBefore", "quotaAfter"])) return false;
   return ["allow", "approval", "deny", "default-deny"].includes(String(value.effect))
     && typeof value.tool === "string" && value.tool.trim().length > 0
-    && Array.isArray(value.reasonCodes) && value.reasonCodes.every((entry) => typeof entry === "string")
-    && Array.isArray(value.matchedRuleIds) && value.matchedRuleIds.every((entry) => typeof entry === "string")
+    && isDenseArray(value.reasonCodes) && value.reasonCodes.every((entry) => typeof entry === "string")
+    && isDenseArray(value.matchedRuleIds) && value.matchedRuleIds.every((entry) => typeof entry === "string")
     && Number.isSafeInteger(value.quotaBefore) && (value.quotaBefore as number) >= 0
     && Number.isSafeInteger(value.quotaAfter) && (value.quotaAfter as number) >= 0;
 }
@@ -177,11 +183,12 @@ export function simulateTranscript(policy: Policy, lines: readonly string[]): Si
       continue;
     }
     const id = request.id ?? null;
+    const notification = !Object.hasOwn(request, "id");
     const callResult = parseCall(request);
     if (callResult.error !== undefined || callResult.call === undefined) {
       const rpcResponse = response(id, undefined, callResult.error ?? { code: -32602, message: "invalid params" });
       totals.protocolErrors += 1;
-      appendAudit(entries, request, rpcResponse, null, effectivePolicy.redactKeys ?? [], policyDigest);
+      appendAudit(entries, request, notification ? null : rpcResponse, null, effectivePolicy.redactKeys ?? [], policyDigest);
       continue;
     }
     const decision = engine.evaluate(callResult.call, callResult.context ?? {});
@@ -196,7 +203,7 @@ export function simulateTranscript(policy: Policy, lines: readonly string[]): Si
       totals.denied += 1;
       rpcResponse = response(id, undefined, { code: -32000, message: "policy denied", data: decision });
     }
-    appendAudit(entries, request, rpcResponse, decision, effectivePolicy.redactKeys ?? [], policyDigest);
+    appendAudit(entries, request, notification ? null : rpcResponse, decision, effectivePolicy.redactKeys ?? [], policyDigest);
   }
   return { version: TRANSCRIPT_VERSION, policy: effectivePolicy, policyName: effectivePolicy.name, policyDigest, entries, totals };
 }
@@ -210,7 +217,7 @@ export function verifyAudit(value: unknown): AuditVerification {
   const expectedPolicyDigest = digestPolicy(value.policy);
   if (value.policyDigest !== expectedPolicyDigest) return { valid: false, reason: "policy digest mismatch", rootHash: GENESIS, policyDigest: expectedPolicyDigest };
   let previousHash = auditGenesis(value.policyDigest);
-  if (!Array.isArray(value.entries)) return { valid: false, reason: "entries must be an array", rootHash: previousHash, policyDigest: value.policyDigest };
+  if (!isDenseArray(value.entries)) return { valid: false, reason: "entries must be a dense array", rootHash: previousHash, policyDigest: value.policyDigest };
   for (let index = 0; index < value.entries.length; index += 1) {
     const candidate = value.entries[index];
     if (!isRecord(candidate) || !hasExactKeys(candidate, ["version", "index", "previousHash", "policyDigest", "request", "response", "decision", "hash"])) {

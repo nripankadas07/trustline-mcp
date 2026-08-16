@@ -1,9 +1,9 @@
 {
   "version": "trustline.report/v1",
-  "generatedBy": "trustline-mcp@0.1.0",
+  "generatedBy": "trustline-mcp@0.1.1",
   "deterministic": true,
   "policyName": "offline-attack-lab",
-  "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+  "policyDigest": "1ef2a32bfb866993e019b91c5b28a9679c8f15ea5485de4fb55ddc21fe17898f",
   "totals": {
     "lines": 11,
     "allowed": 4,
@@ -13,8 +13,8 @@
   },
   "audit": {
     "valid": true,
-    "rootHash": "b690877bf824a4dcf7bbab483a4f240fbc4deaead13a8c6bd3a4a2c3bd6bf9c9",
-    "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3"
+    "rootHash": "aaa061f7ca6c19146b507174bb1d035d16877ea5a84515e590fc89cc5543bf00",
+    "policyDigest": "1ef2a32bfb866993e019b91c5b28a9679c8f15ea5485de4fb55ddc21fe17898f"
   },
   "decisions": [
     {
@@ -24,7 +24,7 @@
         "path-allow",
         "tool-allow"
       ],
-      "hash": "b40231c9b3ea7471f9791e87455fe3e63033bbb6651e0f9da09251a0782908ce"
+      "hash": "105d2e519c5602fbe1a8fa00574e6e5a950e6d8376fb17245bd76af9b9d2628e"
     },
     {
       "index": 1,
@@ -32,7 +32,7 @@
       "reasons": [
         "path-traversal"
       ],
-      "hash": "fbe434396b9841f2019b2cc0a9b47622cbc556e5b9dad260aaf813476cacdf00"
+      "hash": "e7b94493f3d5a9a95f26d74aeea29370462834721f858aed288fef3828da3861"
     },
     {
       "index": 2,
@@ -41,7 +41,7 @@
         "host-allow",
         "tool-allow"
       ],
-      "hash": "2c0fb0c3eb0cecc9b4dc4eae9efb02e73ee7bc663abba08db3e49b24c6287432"
+      "hash": "c91a98f10e583df30ed0a48c82ab066f721e300a9a13d155f965cfd45f047b41"
     },
     {
       "index": 3,
@@ -50,7 +50,7 @@
         "host-allow",
         "tool-allow"
       ],
-      "hash": "d2f36cba78b4cf6376a884d567ba1ca85058e84257eea04eb299cd6b09f9235d"
+      "hash": "b67e860c9ccbadb15125fa37ec9b679527937ecbdad22e155de1f5c748895b6d"
     },
     {
       "index": 4,
@@ -58,7 +58,7 @@
       "reasons": [
         "quota-exceeded"
       ],
-      "hash": "eb1e42042b43b78ab0c74c8d1f33f85e5fe629e75f1f685edbc620dbe244953a"
+      "hash": "940320d06946002c79e76cb40aa566b335c4adc2a0b8dcc08f46e989581edaf0"
     },
     {
       "index": 5,
@@ -68,7 +68,7 @@
         "host-unlisted",
         "quota-exceeded"
       ],
-      "hash": "a4a46297f130ee846d56aea5ed81429e0d11513e24091b24dd7c27562231023e"
+      "hash": "cd2dcbe1941a0b939e1c3f8d2ee78fdbf65919a5db3e92ac0d3dce722d1ad50e"
     },
     {
       "index": 6,
@@ -76,7 +76,7 @@
       "reasons": [
         "tool-approval"
       ],
-      "hash": "34472c6ea92965299cd08275711ba961003bfac2d6d637510ac5d29a4fb74696"
+      "hash": "2e1fade43341cd26097e6c9e0acc4807097c1f7168e04fb720b5a1d57b420df4"
     },
     {
       "index": 7,
@@ -84,7 +84,7 @@
       "reasons": [
         "argument-deny"
       ],
-      "hash": "2979e930db4418813e94340919628f988a7fa2cb2c1747357ff17ceddbcc683d"
+      "hash": "9239e9aeddf0e86b2ebc2379856c546c9a8a105e773c4424bb56ecfc37ea00aa"
     },
     {
       "index": 8,
@@ -92,7 +92,7 @@
       "reasons": [
         "tool-approval"
       ],
-      "hash": "4f2e6c5a7623af899f300e96d6ac99aff063b7239d6e2b6f93d8bb4068a415d9"
+      "hash": "6730f7d0286d8e071fba284138df97e7d177433f535f47cf1b56819c6d8ba65a"
     },
     {
       "index": 9,
@@ -100,13 +100,13 @@
       "reasons": [
         "no-allow-rule"
       ],
-      "hash": "9ee084ae9a89b9cc309e77367db281c93b2950254bab43dc6d1c35bd4caeec2b"
+      "hash": "cbb484f73de615c62631271faf25269aa0e9f6a7193728467aeb51140d4a15a9"
     },
     {
       "index": 10,
       "effect": "protocol-error",
       "reasons": [],
-      "hash": "b690877bf824a4dcf7bbab483a4f240fbc4deaead13a8c6bd3a4a2c3bd6bf9c9"
+      "hash": "aaa061f7ca6c19146b507174bb1d035d16877ea5a84515e590fc89cc5543bf00"
     }
   ]
 }

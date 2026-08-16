@@ -2,6 +2,20 @@
 
 All notable changes follow Keep a Changelog principles.
 
+## [0.1.1] - 2026-08-16
+
+### Changed
+
+- Restrict policy regexes to a bounded, non-repeating safe subset and fail closed on oversized match inputs, preventing catastrophic backtracking from blocking transcript evaluation.
+- Treat valid JSON-RPC requests without an `id` as notifications: their policy decision and audit entry are retained, while the recorded protocol response is `null`.
+- Reject trailing CLI operands and option-like positional values instead of silently ignoring them.
+- Reject sparse or extended policy-rule and authenticated audit arrays instead of accepting non-JSON array structure.
+- Publish artifact sets through component-verified staging, directory/target identity rechecks, per-file atomic renames, and set-level backup/rollback. Output-path and target-file symlinks are rejected before any artifact is replaced.
+- Serialize cooperative artifact writers with a bounded fail-closed filesystem lock and reconcile rename-then-error outcomes by inode identity, preventing mixed concurrent bundles and restoring the full prior set after ambiguous failures.
+- Report generated artifacts as `trustline-mcp@0.1.1`.
+
+These stricter regex, array, and CLI checks can reject policies or invocations that `0.1.0` accepted.
+
 ## [0.1.0] - 2026-08-16
 
 ### Added

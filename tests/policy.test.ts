@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { demoPolicy } from "../src/demo.js";
-import { POLICY_VERSION, PolicyEngine, type Policy } from "../src/policy.js";
+import { MAX_REGEX_ARGUMENT_LENGTH, POLICY_VERSION, PolicyEngine, type Policy } from "../src/policy.js";
 
 test("deny overrides allow and approval", () => {
   const engine = new PolicyEngine(demoPolicy);
@@ -41,6 +41,28 @@ test("invalid configured regular expressions are rejected before evaluation", ()
     argumentRules: [{ id: "broken", effect: "deny", tool: "fixture", path: "value", operator: "matches", value: "[" }],
   };
   assert.throws(() => new PolicyEngine(policy), /broken contains an invalid regex/u);
+});
+
+test("resource-unsafe regexes are rejected and oversized values fail closed", () => {
+  const base: Policy = {
+    version: POLICY_VERSION,
+    name: "safe-regex",
+    defaultEffect: "deny",
+    toolRules: [{ id: "allow", effect: "allow", tools: ["fixture"] }],
+  };
+  for (const value of ["^(a+)+$", "a|b", "(a)", "a{1,3}", "(a)\\1"]) {
+    assert.throws(
+      () => new PolicyEngine({ ...base, argumentRules: [{ id: "unsafe", effect: "deny", tool: "fixture", path: "value", operator: "matches", value }] }),
+      /safe regex subset|backreference/u,
+    );
+  }
+  const engine = new PolicyEngine({
+    ...base,
+    argumentRules: [{ id: "bounded", effect: "deny", tool: "fixture", path: "value", operator: "matches", value: "\\bdrop\\b" }],
+  });
+  const decision = engine.evaluate({ name: "fixture", arguments: { value: "x".repeat(MAX_REGEX_ARGUMENT_LENGTH + 1) } });
+  assert.equal(decision.effect, "deny");
+  assert.deepEqual(decision.reasonCodes, ["argument-too-large"]);
 });
 
 test("approval identity must be a nonblank string", () => {
@@ -105,4 +127,20 @@ test("nested argument matching never reads inherited prototype properties", () =
     argumentRules: [{ id: "constructor-present", effect: "allow", tool: "fixture", path: "constructor", operator: "present" }],
   };
   assert.equal(new PolicyEngine(policy).evaluate({ name: "fixture", arguments: {} }).effect, "default-deny");
+});
+
+test("runtime policy validation rejects sparse and extended rule arrays", () => {
+  const base: Policy = {
+    version: POLICY_VERSION,
+    name: "dense-arrays",
+    defaultEffect: "deny",
+    toolRules: [{ id: "allow", effect: "allow", tools: ["fixture"] }],
+  };
+  const sparse = [] as Policy["toolRules"];
+  sparse.length = 1;
+  assert.throws(() => new PolicyEngine({ ...base, toolRules: sparse }), /toolRules must be a dense array/u);
+
+  const extended = structuredClone(base.toolRules) as Policy["toolRules"] & { metadata?: string };
+  extended.metadata = "not-policy-array-data";
+  assert.throws(() => new PolicyEngine({ ...base, toolRules: extended }), /toolRules must be a dense array/u);
 });
