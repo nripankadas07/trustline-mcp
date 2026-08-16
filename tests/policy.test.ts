@@ -65,6 +65,28 @@ test("resource-unsafe regexes are rejected and oversized values fail closed", ()
   assert.deepEqual(decision.reasonCodes, ["argument-too-large"]);
 });
 
+test("safe pattern interpreter preserves anchors, boundaries, classes, and negation without dynamic regex compilation", () => {
+  const evaluate = (pattern: string, value: string): string => new PolicyEngine({
+    version: POLICY_VERSION,
+    name: "parsed-pattern",
+    defaultEffect: "deny",
+    toolRules: [{ id: "allow", effect: "allow", tools: ["fixture"] }],
+    argumentRules: [{ id: "match", effect: "deny", tool: "fixture", path: "value", operator: "matches", value: pattern }],
+  }).evaluate({ name: "fixture", arguments: { value } }).effect;
+
+  assert.equal(evaluate("^file-[A-C]\\d$", "file-B7"), "deny");
+  assert.equal(evaluate("^file-[A-C]\\d$", "prefix-file-B7"), "allow");
+  assert.equal(evaluate("\\bdelete\\b", "please delete this"), "deny");
+  assert.equal(evaluate("\\bdelete\\b", "undeleted"), "allow");
+  assert.equal(evaluate("^[^0-9]\\w$", "A_"), "deny");
+  assert.equal(evaluate("^[^0-9]\\w$", "7_"), "allow");
+  assert.equal(evaluate("^.$", "\n"), "allow");
+
+  for (const pattern of ["[z-a]", "\\p{L}", "[]", "[\\d-z]", "\\!", "\\01"]) {
+    assert.throws(() => evaluate(pattern, "x"), /regex|safe regex subset|character-class|range endpoints|escape/u);
+  }
+});
+
 test("approval identity must be a nonblank string", () => {
   const engine = new PolicyEngine(demoPolicy);
   const call = { name: "shell.safe", arguments: { command: "npm test" } };
