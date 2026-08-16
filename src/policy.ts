@@ -72,11 +72,58 @@ export interface Decision {
 
 const EFFECTS = new Set<unknown>(["allow", "approval", "deny"]);
 const ARGUMENT_OPERATORS = new Set<unknown>(["equals", "contains", "matches", "present"]);
+export const MAX_REGEX_PATTERN_LENGTH = 256;
+export const MAX_REGEX_ARGUMENT_LENGTH = 100_000;
+
+function exceedsCodePointLimit(value: string, limit: number): boolean {
+  let count = 0;
+  for (const _character of value) {
+    count += 1;
+    if (count > limit) return true;
+  }
+  return false;
+}
+
+function assertSafeRegex(pattern: string, label: string): void {
+  if (exceedsCodePointLimit(pattern, MAX_REGEX_PATTERN_LENGTH)) throw new Error(`${label} exceeds the safe regex length limit`);
+  let escaped = false;
+  let characterClass = false;
+  for (const character of pattern) {
+    if (escaped) {
+      if (/[1-9]/u.test(character) || character === "k") throw new Error(`${label} contains an unsupported backreference`);
+      escaped = false;
+      continue;
+    }
+    if (character === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (character === "[") {
+      characterClass = true;
+      continue;
+    }
+    if (character === "]") {
+      characterClass = false;
+      continue;
+    }
+    if (!characterClass && "()|*+?{}".includes(character)) {
+      throw new Error(`${label} uses grouping, alternation, or repetition outside the safe regex subset`);
+    }
+  }
+  try { new RegExp(pattern, "u"); }
+  catch { throw new Error(`${label} contains an invalid regex`); }
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
+}
+
+function isDenseArray(value: unknown): value is unknown[] {
+  return Array.isArray(value)
+    && Object.keys(value).length === value.length
+    && Object.keys(value).every((key, index) => key === String(index));
 }
 
 function requireOnlyKeys(value: Record<string, unknown>, allowed: readonly string[], label: string): void {
@@ -89,7 +136,7 @@ function requireNonblank(value: unknown, label: string): asserts value is string
 }
 
 function requireStringArray(value: unknown, label: string, allowEmpty = false): asserts value is string[] {
-  if (!Array.isArray(value) || (!allowEmpty && value.length === 0) || value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)) {
+  if (!isDenseArray(value) || (!allowEmpty && value.length === 0) || value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)) {
     throw new Error(`${label} must be ${allowEmpty ? "an" : "a nonempty"} array of nonblank strings`);
   }
 }
@@ -101,7 +148,7 @@ export function assertPolicy(value: unknown): asserts value is Policy {
   if (value.version !== POLICY_VERSION) throw new Error(`unsupported policy version: ${String(value.version)}`);
   requireNonblank(value.name, "policy name");
   if (value.defaultEffect !== "deny") throw new Error("Trustline v1 requires default deny");
-  if (!Array.isArray(value.toolRules)) throw new Error("toolRules must be an array");
+  if (!isDenseArray(value.toolRules)) throw new Error("toolRules must be a dense array");
 
   const ids = new Set<string>();
   const claimId = (rule: Record<string, unknown>, label: string): string => {
@@ -116,7 +163,7 @@ export function assertPolicy(value: unknown): asserts value is Policy {
   const optionalArray = (key: keyof Policy): unknown[] => {
     const candidate = value[key];
     if (candidate === undefined) return [];
-    if (!Array.isArray(candidate)) throw new Error(`${key} must be an array`);
+    if (!isDenseArray(candidate)) throw new Error(`${key} must be a dense array`);
     return candidate;
   };
 
@@ -141,8 +188,7 @@ export function assertPolicy(value: unknown): asserts value is Policy {
     if (typeof candidate.value === "number" && !Number.isFinite(candidate.value)) throw new Error(`argument rule ${id} value must be finite`);
     if (candidate.operator === "matches") {
       if (typeof candidate.value !== "string") throw new Error(`argument rule ${id} requires a string regex`);
-      try { new RegExp(candidate.value, "u"); }
-      catch { throw new Error(`argument rule ${id} contains an invalid regex`); }
+      assertSafeRegex(candidate.value, `argument rule ${id}`);
     }
     if (candidate.operator === "contains" && !["string", "number", "boolean"].includes(typeof candidate.value)) {
       throw new Error(`argument rule ${id} contains requires a string, number, or boolean value`);
@@ -198,14 +244,15 @@ function readPath(value: unknown, path: string): unknown {
   }, value);
 }
 
-function argumentMatches(actual: unknown, rule: ArgumentRule): boolean {
+function argumentMatches(actual: unknown, rule: ArgumentRule): { matched: boolean; oversized: boolean } {
   switch (rule.operator) {
-    case "present": return actual !== undefined && actual !== null;
-    case "equals": return actual === rule.value;
-    case "contains": return typeof actual === "string" && actual.includes(String(rule.value ?? ""));
+    case "present": return { matched: actual !== undefined && actual !== null, oversized: false };
+    case "equals": return { matched: actual === rule.value, oversized: false };
+    case "contains": return { matched: typeof actual === "string" && actual.includes(String(rule.value ?? "")), oversized: false };
     case "matches": {
-      if (typeof actual !== "string" || typeof rule.value !== "string") return false;
-      return new RegExp(rule.value, "u").test(actual);
+      if (typeof actual !== "string" || typeof rule.value !== "string") return { matched: false, oversized: false };
+      if (exceedsCodePointLimit(actual, MAX_REGEX_ARGUMENT_LENGTH)) return { matched: false, oversized: true };
+      return { matched: new RegExp(rule.value, "u").test(actual), oversized: false };
     }
   }
 }
@@ -242,7 +289,11 @@ export class PolicyEngine {
       }
     }
     for (const rule of this.policy.argumentRules ?? []) {
-      if (matchTool(rule.tool, call.name) && argumentMatches(readPath(call.arguments, rule.path), rule)) {
+      if (!matchTool(rule.tool, call.name)) continue;
+      const evaluation = argumentMatches(readPath(call.arguments, rule.path), rule);
+      if (evaluation.oversized) {
+        matches.push({ id: `${rule.id}:input-too-large`, effect: "deny", reason: "argument-too-large" });
+      } else if (evaluation.matched) {
         matches.push({ id: rule.id, effect: rule.effect, reason: `argument-${rule.effect}` });
       }
     }

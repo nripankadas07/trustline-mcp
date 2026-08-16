@@ -11,7 +11,7 @@ It is deliberately honest about scope: this repository is an offline transcript 
 - Deny always overrides allow and approval.
 - Rules cover tool names, nested arguments, filesystem roots, hosts, quotas, and explicit approvals.
 - Applicable path and host allowlists fail closed when their argument is missing, non-string, or malformed; approvals require a nonblank reviewer identity.
-- Invalid configured regular expressions are rejected when the policy engine is constructed.
+- Invalid or resource-unsafe configured regular expressions are rejected when the policy engine is constructed; the supported subset excludes grouping, alternation, backreferences, lookarounds, and repetition.
 - Secret-bearing keys, URL credentials/query secrets, and common credential shapes are redacted before hashing.
 - Runtime policy validation rejects malformed rule operators, effects, host/path lists, and quota limits before evaluation.
 - Every matching quota is enforced; an earlier broad quota cannot hide a stricter overlapping quota.
