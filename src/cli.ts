@@ -45,23 +45,19 @@ const help: CommandHandler = async (operands) => {
   return 0;
 };
 
-const COMMANDS: ReadonlyMap<string, CommandHandler> = new Map([
-  ["demo", demo],
-  ["simulate", simulate],
-  ["verify", verify],
-  ["help", help],
-  ["--help", help],
-  ["-h", help],
-]);
-
 async function main(args: string[]): Promise<number> {
   const [requestedCommand = "help", ...operands] = args;
-  const handler = COMMANDS.get(requestedCommand);
-  if (handler === undefined) {
-    console.log(USAGE);
-    return 2;
+  switch (requestedCommand) {
+    case "demo": return demo(operands);
+    case "simulate": return simulate(operands);
+    case "verify": return verify(operands);
+    case "help":
+    case "--help":
+    case "-h": return help(operands);
+    default:
+      console.log(USAGE);
+      return 2;
   }
-  return handler(operands);
 }
 
 main(process.argv.slice(2)).then((code) => { process.exitCode = code; }).catch((error: unknown) => {
