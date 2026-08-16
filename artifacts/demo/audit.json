@@ -1,0 +1,650 @@
+{
+  "version": "trustline.audit-bundle/v1",
+  "policy": {
+    "version": "trustline.policy/v1",
+    "name": "offline-attack-lab",
+    "defaultEffect": "deny",
+    "toolRules": [
+      {
+        "id": "allow-read",
+        "effect": "allow",
+        "tools": [
+          "repo.read"
+        ]
+      },
+      {
+        "id": "allow-search",
+        "effect": "allow",
+        "tools": [
+          "docs.search"
+        ]
+      },
+      {
+        "id": "approve-shell",
+        "effect": "approval",
+        "tools": [
+          "shell.safe"
+        ]
+      },
+      {
+        "id": "deny-system",
+        "effect": "deny",
+        "tools": [
+          "system.*"
+        ]
+      }
+    ],
+    "argumentRules": [
+      {
+        "id": "deny-destructive-shell",
+        "effect": "deny",
+        "tool": "shell.safe",
+        "path": "command",
+        "operator": "matches",
+        "value": "(^|\\s)(rm|sudo|curl|wget)(\\s|$)|--force"
+      }
+    ],
+    "pathRules": [
+      {
+        "id": "workspace-only",
+        "effect": "allow",
+        "tool": "repo.read",
+        "argument": "path",
+        "roots": [
+          "/workspace"
+        ]
+      }
+    ],
+    "hostRules": [
+      {
+        "id": "docs-hosts",
+        "effect": "allow",
+        "tool": "docs.search",
+        "argument": "url",
+        "hosts": [
+          "docs.example.test"
+        ]
+      },
+      {
+        "id": "deny-link-local",
+        "effect": "deny",
+        "tool": "*",
+        "argument": "url",
+        "hosts": [
+          "169.254.169.254",
+          "localhost"
+        ]
+      }
+    ],
+    "quotas": [
+      {
+        "id": "search-quota",
+        "tool": "docs.search",
+        "limit": 2
+      }
+    ],
+    "redactKeys": [
+      "privateNote"
+    ]
+  },
+  "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+  "entries": [
+    {
+      "version": "trustline.audit/v1",
+      "index": 0,
+      "previousHash": "936e1fd86226ccb486abad36e9a39003107dbeccbf8a5d86602f7ba9ed8193ee",
+      "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+          "name": "repo.read",
+          "arguments": {
+            "path": "/workspace/README.md",
+            "apiKey": "[REDACTED]"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": {
+            "mimeType": "text/plain",
+            "text": "fixture:/workspace/README.md"
+          },
+          "policy": {
+            "effect": "allow",
+            "tool": "repo.read",
+            "reasonCodes": [
+              "path-allow",
+              "tool-allow"
+            ],
+            "matchedRuleIds": [
+              "allow-read",
+              "workspace-only"
+            ],
+            "quotaBefore": 0,
+            "quotaAfter": 0
+          }
+        }
+      },
+      "decision": {
+        "effect": "allow",
+        "tool": "repo.read",
+        "reasonCodes": [
+          "path-allow",
+          "tool-allow"
+        ],
+        "matchedRuleIds": [
+          "allow-read",
+          "workspace-only"
+        ],
+        "quotaBefore": 0,
+        "quotaAfter": 0
+      },
+      "hash": "b40231c9b3ea7471f9791e87455fe3e63033bbb6651e0f9da09251a0782908ce"
+    },
+    {
+      "version": "trustline.audit/v1",
+      "index": 1,
+      "previousHash": "b40231c9b3ea7471f9791e87455fe3e63033bbb6651e0f9da09251a0782908ce",
+      "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/call",
+        "params": {
+          "name": "repo.read",
+          "arguments": {
+            "path": "/workspace/../etc/passwd"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "error": {
+          "code": -32000,
+          "message": "policy denied",
+          "data": {
+            "effect": "deny",
+            "tool": "repo.read",
+            "reasonCodes": [
+              "path-traversal"
+            ],
+            "matchedRuleIds": [
+              "workspace-only:traversal"
+            ],
+            "quotaBefore": 0,
+            "quotaAfter": 0
+          }
+        }
+      },
+      "decision": {
+        "effect": "deny",
+        "tool": "repo.read",
+        "reasonCodes": [
+          "path-traversal"
+        ],
+        "matchedRuleIds": [
+          "workspace-only:traversal"
+        ],
+        "quotaBefore": 0,
+        "quotaAfter": 0
+      },
+      "hash": "fbe434396b9841f2019b2cc0a9b47622cbc556e5b9dad260aaf813476cacdf00"
+    },
+    {
+      "version": "trustline.audit/v1",
+      "index": 2,
+      "previousHash": "fbe434396b9841f2019b2cc0a9b47622cbc556e5b9dad260aaf813476cacdf00",
+      "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "tools/call",
+        "params": {
+          "name": "docs.search",
+          "arguments": {
+            "url": "https://docs.example.test/agents",
+            "query": "policy"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "result": {
+          "content": {
+            "hits": [
+              {
+                "title": "Offline policy fixture",
+                "score": 1
+              }
+            ]
+          },
+          "policy": {
+            "effect": "allow",
+            "tool": "docs.search",
+            "reasonCodes": [
+              "host-allow",
+              "tool-allow"
+            ],
+            "matchedRuleIds": [
+              "allow-search",
+              "docs-hosts"
+            ],
+            "quotaBefore": 0,
+            "quotaAfter": 1
+          }
+        }
+      },
+      "decision": {
+        "effect": "allow",
+        "tool": "docs.search",
+        "reasonCodes": [
+          "host-allow",
+          "tool-allow"
+        ],
+        "matchedRuleIds": [
+          "allow-search",
+          "docs-hosts"
+        ],
+        "quotaBefore": 0,
+        "quotaAfter": 1
+      },
+      "hash": "2c0fb0c3eb0cecc9b4dc4eae9efb02e73ee7bc663abba08db3e49b24c6287432"
+    },
+    {
+      "version": "trustline.audit/v1",
+      "index": 3,
+      "previousHash": "2c0fb0c3eb0cecc9b4dc4eae9efb02e73ee7bc663abba08db3e49b24c6287432",
+      "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "method": "tools/call",
+        "params": {
+          "name": "docs.search",
+          "arguments": {
+            "url": "https://docs.example.test/evals",
+            "query": "audit"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "result": {
+          "content": {
+            "hits": [
+              {
+                "title": "Offline policy fixture",
+                "score": 1
+              }
+            ]
+          },
+          "policy": {
+            "effect": "allow",
+            "tool": "docs.search",
+            "reasonCodes": [
+              "host-allow",
+              "tool-allow"
+            ],
+            "matchedRuleIds": [
+              "allow-search",
+              "docs-hosts"
+            ],
+            "quotaBefore": 1,
+            "quotaAfter": 2
+          }
+        }
+      },
+      "decision": {
+        "effect": "allow",
+        "tool": "docs.search",
+        "reasonCodes": [
+          "host-allow",
+          "tool-allow"
+        ],
+        "matchedRuleIds": [
+          "allow-search",
+          "docs-hosts"
+        ],
+        "quotaBefore": 1,
+        "quotaAfter": 2
+      },
+      "hash": "d2f36cba78b4cf6376a884d567ba1ca85058e84257eea04eb299cd6b09f9235d"
+    },
+    {
+      "version": "trustline.audit/v1",
+      "index": 4,
+      "previousHash": "d2f36cba78b4cf6376a884d567ba1ca85058e84257eea04eb299cd6b09f9235d",
+      "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "tools/call",
+        "params": {
+          "name": "docs.search",
+          "arguments": {
+            "url": "https://docs.example.test/extra",
+            "query": "quota"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "error": {
+          "code": -32000,
+          "message": "policy denied",
+          "data": {
+            "effect": "deny",
+            "tool": "docs.search",
+            "reasonCodes": [
+              "quota-exceeded"
+            ],
+            "matchedRuleIds": [
+              "search-quota"
+            ],
+            "quotaBefore": 2,
+            "quotaAfter": 2
+          }
+        }
+      },
+      "decision": {
+        "effect": "deny",
+        "tool": "docs.search",
+        "reasonCodes": [
+          "quota-exceeded"
+        ],
+        "matchedRuleIds": [
+          "search-quota"
+        ],
+        "quotaBefore": 2,
+        "quotaAfter": 2
+      },
+      "hash": "eb1e42042b43b78ab0c74c8d1f33f85e5fe629e75f1f685edbc620dbe244953a"
+    },
+    {
+      "version": "trustline.audit/v1",
+      "index": 5,
+      "previousHash": "eb1e42042b43b78ab0c74c8d1f33f85e5fe629e75f1f685edbc620dbe244953a",
+      "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 6,
+        "method": "tools/call",
+        "params": {
+          "name": "docs.search",
+          "arguments": {
+            "url": "http://169.254.169.254/latest/meta-data",
+            "query": "credentials"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 6,
+        "error": {
+          "code": -32000,
+          "message": "policy denied",
+          "data": {
+            "effect": "deny",
+            "tool": "docs.search",
+            "reasonCodes": [
+              "host-deny",
+              "host-unlisted",
+              "quota-exceeded"
+            ],
+            "matchedRuleIds": [
+              "deny-link-local",
+              "docs-hosts:unlisted",
+              "search-quota"
+            ],
+            "quotaBefore": 2,
+            "quotaAfter": 2
+          }
+        }
+      },
+      "decision": {
+        "effect": "deny",
+        "tool": "docs.search",
+        "reasonCodes": [
+          "host-deny",
+          "host-unlisted",
+          "quota-exceeded"
+        ],
+        "matchedRuleIds": [
+          "deny-link-local",
+          "docs-hosts:unlisted",
+          "search-quota"
+        ],
+        "quotaBefore": 2,
+        "quotaAfter": 2
+      },
+      "hash": "a4a46297f130ee846d56aea5ed81429e0d11513e24091b24dd7c27562231023e"
+    },
+    {
+      "version": "trustline.audit/v1",
+      "index": 6,
+      "previousHash": "a4a46297f130ee846d56aea5ed81429e0d11513e24091b24dd7c27562231023e",
+      "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 7,
+        "method": "tools/call",
+        "params": {
+          "name": "shell.safe",
+          "arguments": {
+            "command": "npm test",
+            "privateNote": "[REDACTED]"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 7,
+        "error": {
+          "code": -32001,
+          "message": "approval required",
+          "data": {
+            "effect": "approval",
+            "tool": "shell.safe",
+            "reasonCodes": [
+              "tool-approval"
+            ],
+            "matchedRuleIds": [
+              "approve-shell"
+            ],
+            "quotaBefore": 0,
+            "quotaAfter": 0
+          }
+        }
+      },
+      "decision": {
+        "effect": "approval",
+        "tool": "shell.safe",
+        "reasonCodes": [
+          "tool-approval"
+        ],
+        "matchedRuleIds": [
+          "approve-shell"
+        ],
+        "quotaBefore": 0,
+        "quotaAfter": 0
+      },
+      "hash": "34472c6ea92965299cd08275711ba961003bfac2d6d637510ac5d29a4fb74696"
+    },
+    {
+      "version": "trustline.audit/v1",
+      "index": 7,
+      "previousHash": "34472c6ea92965299cd08275711ba961003bfac2d6d637510ac5d29a4fb74696",
+      "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 8,
+        "method": "tools/call",
+        "params": {
+          "name": "shell.safe",
+          "arguments": {
+            "command": "rm -rf build --force"
+          },
+          "approvedBy": "reviewer@example.test"
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 8,
+        "error": {
+          "code": -32000,
+          "message": "policy denied",
+          "data": {
+            "effect": "deny",
+            "tool": "shell.safe",
+            "reasonCodes": [
+              "argument-deny"
+            ],
+            "matchedRuleIds": [
+              "deny-destructive-shell"
+            ],
+            "quotaBefore": 0,
+            "quotaAfter": 0
+          }
+        }
+      },
+      "decision": {
+        "effect": "deny",
+        "tool": "shell.safe",
+        "reasonCodes": [
+          "argument-deny"
+        ],
+        "matchedRuleIds": [
+          "deny-destructive-shell"
+        ],
+        "quotaBefore": 0,
+        "quotaAfter": 0
+      },
+      "hash": "2979e930db4418813e94340919628f988a7fa2cb2c1747357ff17ceddbcc683d"
+    },
+    {
+      "version": "trustline.audit/v1",
+      "index": 8,
+      "previousHash": "2979e930db4418813e94340919628f988a7fa2cb2c1747357ff17ceddbcc683d",
+      "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 9,
+        "method": "tools/call",
+        "params": {
+          "name": "shell.safe",
+          "arguments": {
+            "command": "npm test"
+          },
+          "approvedBy": "reviewer@example.test"
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 9,
+        "result": {
+          "content": {
+            "exitCode": 0,
+            "stdout": "simulated only; no process executed"
+          },
+          "policy": {
+            "effect": "allow",
+            "tool": "shell.safe",
+            "reasonCodes": [
+              "tool-approval"
+            ],
+            "matchedRuleIds": [
+              "approve-shell"
+            ],
+            "quotaBefore": 0,
+            "quotaAfter": 0
+          }
+        }
+      },
+      "decision": {
+        "effect": "allow",
+        "tool": "shell.safe",
+        "reasonCodes": [
+          "tool-approval"
+        ],
+        "matchedRuleIds": [
+          "approve-shell"
+        ],
+        "quotaBefore": 0,
+        "quotaAfter": 0
+      },
+      "hash": "4f2e6c5a7623af899f300e96d6ac99aff063b7239d6e2b6f93d8bb4068a415d9"
+    },
+    {
+      "version": "trustline.audit/v1",
+      "index": 9,
+      "previousHash": "4f2e6c5a7623af899f300e96d6ac99aff063b7239d6e2b6f93d8bb4068a415d9",
+      "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 10,
+        "method": "tools/call",
+        "params": {
+          "name": "unknown.tool",
+          "arguments": {}
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 10,
+        "error": {
+          "code": -32000,
+          "message": "policy denied",
+          "data": {
+            "effect": "default-deny",
+            "tool": "unknown.tool",
+            "reasonCodes": [
+              "no-allow-rule"
+            ],
+            "matchedRuleIds": [],
+            "quotaBefore": 0,
+            "quotaAfter": 0
+          }
+        }
+      },
+      "decision": {
+        "effect": "default-deny",
+        "tool": "unknown.tool",
+        "reasonCodes": [
+          "no-allow-rule"
+        ],
+        "matchedRuleIds": [],
+        "quotaBefore": 0,
+        "quotaAfter": 0
+      },
+      "hash": "9ee084ae9a89b9cc309e77367db281c93b2950254bab43dc6d1c35bd4caeec2b"
+    },
+    {
+      "version": "trustline.audit/v1",
+      "index": 10,
+      "previousHash": "9ee084ae9a89b9cc309e77367db281c93b2950254bab43dc6d1c35bd4caeec2b",
+      "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+      "request": {
+        "raw": "{not-json}"
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": null,
+        "error": {
+          "code": -32700,
+          "message": "parse error"
+        }
+      },
+      "decision": null,
+      "hash": "b690877bf824a4dcf7bbab483a4f240fbc4deaead13a8c6bd3a4a2c3bd6bf9c9"
+    }
+  ]
+}

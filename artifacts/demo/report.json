@@ -1,0 +1,112 @@
+{
+  "version": "trustline.report/v1",
+  "generatedBy": "trustline-mcp@0.1.0",
+  "deterministic": true,
+  "policyName": "offline-attack-lab",
+  "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3",
+  "totals": {
+    "lines": 11,
+    "allowed": 4,
+    "denied": 5,
+    "approvalRequired": 1,
+    "protocolErrors": 1
+  },
+  "audit": {
+    "valid": true,
+    "rootHash": "b690877bf824a4dcf7bbab483a4f240fbc4deaead13a8c6bd3a4a2c3bd6bf9c9",
+    "policyDigest": "4280a64242747a4a2f33c12fdf3dcf832c37dcb200612ad48a8f4e18049900a3"
+  },
+  "decisions": [
+    {
+      "index": 0,
+      "effect": "allow",
+      "reasons": [
+        "path-allow",
+        "tool-allow"
+      ],
+      "hash": "b40231c9b3ea7471f9791e87455fe3e63033bbb6651e0f9da09251a0782908ce"
+    },
+    {
+      "index": 1,
+      "effect": "deny",
+      "reasons": [
+        "path-traversal"
+      ],
+      "hash": "fbe434396b9841f2019b2cc0a9b47622cbc556e5b9dad260aaf813476cacdf00"
+    },
+    {
+      "index": 2,
+      "effect": "allow",
+      "reasons": [
+        "host-allow",
+        "tool-allow"
+      ],
+      "hash": "2c0fb0c3eb0cecc9b4dc4eae9efb02e73ee7bc663abba08db3e49b24c6287432"
+    },
+    {
+      "index": 3,
+      "effect": "allow",
+      "reasons": [
+        "host-allow",
+        "tool-allow"
+      ],
+      "hash": "d2f36cba78b4cf6376a884d567ba1ca85058e84257eea04eb299cd6b09f9235d"
+    },
+    {
+      "index": 4,
+      "effect": "deny",
+      "reasons": [
+        "quota-exceeded"
+      ],
+      "hash": "eb1e42042b43b78ab0c74c8d1f33f85e5fe629e75f1f685edbc620dbe244953a"
+    },
+    {
+      "index": 5,
+      "effect": "deny",
+      "reasons": [
+        "host-deny",
+        "host-unlisted",
+        "quota-exceeded"
+      ],
+      "hash": "a4a46297f130ee846d56aea5ed81429e0d11513e24091b24dd7c27562231023e"
+    },
+    {
+      "index": 6,
+      "effect": "approval",
+      "reasons": [
+        "tool-approval"
+      ],
+      "hash": "34472c6ea92965299cd08275711ba961003bfac2d6d637510ac5d29a4fb74696"
+    },
+    {
+      "index": 7,
+      "effect": "deny",
+      "reasons": [
+        "argument-deny"
+      ],
+      "hash": "2979e930db4418813e94340919628f988a7fa2cb2c1747357ff17ceddbcc683d"
+    },
+    {
+      "index": 8,
+      "effect": "allow",
+      "reasons": [
+        "tool-approval"
+      ],
+      "hash": "4f2e6c5a7623af899f300e96d6ac99aff063b7239d6e2b6f93d8bb4068a415d9"
+    },
+    {
+      "index": 9,
+      "effect": "default-deny",
+      "reasons": [
+        "no-allow-rule"
+      ],
+      "hash": "9ee084ae9a89b9cc309e77367db281c93b2950254bab43dc6d1c35bd4caeec2b"
+    },
+    {
+      "index": 10,
+      "effect": "protocol-error",
+      "reasons": [],
+      "hash": "b690877bf824a4dcf7bbab483a4f240fbc4deaead13a8c6bd3a4a2c3bd6bf9c9"
+    }
+  ]
+}

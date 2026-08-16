@@ -1,0 +1,11 @@
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"repo.read","arguments":{"path":"/workspace/README.md","apiKey":"synthetic-demo-token-123456"}}}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"repo.read","arguments":{"path":"/workspace/../etc/passwd"}}}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"docs.search","arguments":{"url":"https://docs.example.test/agents","query":"policy"}}}
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"docs.search","arguments":{"url":"https://docs.example.test/evals","query":"audit"}}}
+{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"docs.search","arguments":{"url":"https://docs.example.test/extra","query":"quota"}}}
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"docs.search","arguments":{"url":"http://169.254.169.254/latest/meta-data","query":"credentials"}}}
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"shell.safe","arguments":{"command":"npm test","privateNote":"Bearer very-secret-token"}}}
+{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"shell.safe","arguments":{"command":"rm -rf build --force"},"approvedBy":"reviewer@example.test"}}
+{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"shell.safe","arguments":{"command":"npm test"},"approvedBy":"reviewer@example.test"}}
+{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"unknown.tool","arguments":{}}}
+{not-json}

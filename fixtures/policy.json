@@ -1,0 +1,23 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "offline-attack-lab",
+  "defaultEffect": "deny",
+  "toolRules": [
+    { "id": "allow-read", "effect": "allow", "tools": ["repo.read"] },
+    { "id": "allow-search", "effect": "allow", "tools": ["docs.search"] },
+    { "id": "approve-shell", "effect": "approval", "tools": ["shell.safe"] },
+    { "id": "deny-system", "effect": "deny", "tools": ["system.*"] }
+  ],
+  "argumentRules": [
+    { "id": "deny-destructive-shell", "effect": "deny", "tool": "shell.safe", "path": "command", "operator": "matches", "value": "(^|\\s)(rm|sudo|curl|wget)(\\s|$)|--force" }
+  ],
+  "pathRules": [
+    { "id": "workspace-only", "effect": "allow", "tool": "repo.read", "argument": "path", "roots": ["/workspace"] }
+  ],
+  "hostRules": [
+    { "id": "docs-hosts", "effect": "allow", "tool": "docs.search", "argument": "url", "hosts": ["docs.example.test"] },
+    { "id": "deny-link-local", "effect": "deny", "tool": "*", "argument": "url", "hosts": ["169.254.169.254", "localhost"] }
+  ],
+  "quotas": [{ "id": "search-quota", "tool": "docs.search", "limit": 2 }],
+  "redactKeys": ["privateNote"]
+}

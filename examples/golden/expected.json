@@ -1,0 +1,8 @@
+{
+  "version": "trustline.golden/v1",
+  "policy": "offline-attack-lab",
+  "totals": { "lines": 11, "allowed": 4, "denied": 5, "approvalRequired": 1, "protocolErrors": 1 },
+  "auditValid": true,
+  "rootHash": "b690877bf824a4dcf7bbab483a4f240fbc4deaead13a8c6bd3a4a2c3bd6bf9c9",
+  "artifacts": ["audit.json", "report.json", "report.md", "index.html"]
+}
