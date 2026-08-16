@@ -82,7 +82,7 @@ test("safe pattern interpreter preserves anchors, boundaries, classes, and negat
   assert.equal(evaluate("^[^0-9]\\w$", "7_"), "allow");
   assert.equal(evaluate("^.$", "\n"), "allow");
 
-  for (const pattern of ["[z-a]", "\\p{L}", "[]", "[\\d-z]", "\\!", "\\01"]) {
+  for (const pattern of ["[z-a]", "\\p{L}", "[]", "[\\d-z]", "\\!", "\\01", "\\B"]) {
     assert.throws(() => evaluate(pattern, "x"), /regex|safe regex subset|character-class|range endpoints|escape/u);
   }
 });

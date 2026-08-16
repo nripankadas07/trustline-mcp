@@ -5,7 +5,10 @@
 - Host checks are string/URL checks, not DNS-rebinding protection.
 - Path checks are lexical and do not resolve symlinks or filesystem mount boundaries.
 - Pattern policies use a dedicated interpreter for literals, dot, basic escapes,
-  character classes, start/end anchors, and word boundaries. Grouping,
+  character classes, start/end anchors, and `\\b` word boundaries. The `\\B`
+  non-boundary assertion is rejected because JavaScript can evaluate it inside
+  a UTF-16 surrogate pair while this interpreter uses Unicode code-point
+  boundaries. Grouping,
   alternation, backreferences, lookarounds, and repetition operators are rejected;
   patterns are capped at 256 code points and matched values at 100,000 code
   points. The interpreter does not dynamically compile policy text as a

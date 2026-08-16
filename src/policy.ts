@@ -230,7 +230,7 @@ function compileSafePattern(pattern: string, label: string): SafePattern {
       if (escaped === undefined) throw new Error(`${label} contains an incomplete escape`);
       if (/[1-9]/u.test(escaped) || escaped === "k") throw new Error(`${label} contains an unsupported backreference`);
       if (escaped === "0" && /[0-9]/u.test(pattern[index + 2] ?? "")) throw new Error(`${label} contains an invalid decimal escape`);
-      if (escaped === "b" || escaped === "B") atoms.push({ kind: "boundary", negated: escaped === "B" });
+      if (escaped === "b") atoms.push({ kind: "boundary", negated: false });
       else {
         const matcher = escapedCharacterMatcher(escaped, false);
         if (matcher === undefined) throw new Error(`${label} uses an unsupported escape outside the safe regex subset`);

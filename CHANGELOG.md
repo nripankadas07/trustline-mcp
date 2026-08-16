@@ -8,7 +8,8 @@ All notable changes follow Keep a Changelog principles.
 
 - Parse policy patterns into a bounded, non-repeating safe-pattern program and
   evaluate it without dynamically compiling JavaScript regular expressions;
-  fail closed on oversized match inputs.
+  fail closed on oversized match inputs and reject ambiguous `\\B` surrogate-pair
+  semantics.
 - Treat valid JSON-RPC requests without an `id` as notifications: their policy decision and audit entry are retained, while the recorded protocol response is `null`.
 - Reject trailing CLI operands and option-like positional values instead of silently ignoring them.
 - Dispatch CLI commands only through a fixed command-to-handler allowlist.
