@@ -9,7 +9,11 @@
     { "id": "deny-system", "effect": "deny", "tools": ["system.*"] }
   ],
   "argumentRules": [
-    { "id": "deny-destructive-shell", "effect": "deny", "tool": "shell.safe", "path": "command", "operator": "matches", "value": "(^|\\s)(rm|sudo|curl|wget)(\\s|$)|--force" }
+    { "id": "deny-rm", "effect": "deny", "tool": "shell.safe", "path": "command", "operator": "matches", "value": "\\brm\\b" },
+    { "id": "deny-sudo", "effect": "deny", "tool": "shell.safe", "path": "command", "operator": "matches", "value": "\\bsudo\\b" },
+    { "id": "deny-curl", "effect": "deny", "tool": "shell.safe", "path": "command", "operator": "matches", "value": "\\bcurl\\b" },
+    { "id": "deny-wget", "effect": "deny", "tool": "shell.safe", "path": "command", "operator": "matches", "value": "\\bwget\\b" },
+    { "id": "deny-force", "effect": "deny", "tool": "shell.safe", "path": "command", "operator": "matches", "value": "--force" }
   ],
   "pathRules": [
     { "id": "workspace-only", "effect": "allow", "tool": "repo.read", "argument": "path", "roots": ["/workspace"] }

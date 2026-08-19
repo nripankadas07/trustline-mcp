@@ -1,0 +1,26 @@
+{
+  "version": "trustline.conformance/v1",
+  "schema": "../../schemas/trustline.policy.v1.schema.json",
+  "cases": [
+    {
+      "file": "policy.valid.json",
+      "schemaValid": true,
+      "runtimeValid": true
+    },
+    {
+      "file": "policy.invalid-extra-field.json",
+      "schemaValid": false,
+      "runtimeValid": false
+    },
+    {
+      "file": "policy.runtime-invalid-regex.json",
+      "schemaValid": true,
+      "runtimeValid": false
+    },
+    {
+      "file": "policy.runtime-duplicate-id.json",
+      "schemaValid": true,
+      "runtimeValid": false
+    }
+  ]
+}

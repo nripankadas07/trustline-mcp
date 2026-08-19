@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/nripankadas07/trustline-mcp/main/schemas/trustline.policy.v1.schema.json",
+  "title": "Trustline MCP policy v1",
+  "description": "Portable policy shape. Trustline runtime validation applies additional cross-record and resource-safety constraints.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "name", "defaultEffect", "toolRules"],
+  "properties": {
+    "version": { "const": "trustline.policy/v1" },
+    "name": { "$ref": "#/$defs/nonblankString" },
+    "defaultEffect": { "const": "deny" },
+    "toolRules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/toolRule" }
+    },
+    "argumentRules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/argumentRule" }
+    },
+    "pathRules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/pathRule" }
+    },
+    "hostRules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/hostRule" }
+    },
+    "quotas": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/quotaRule" }
+    },
+    "redactKeys": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonblankString" },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "nonblankString": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "effect": {
+      "enum": ["allow", "approval", "deny"]
+    },
+    "primitive": {
+      "anyOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" }
+      ]
+    },
+    "dottedPath": {
+      "type": "string",
+      "pattern": "^(?!\\.)(?!.*\\.\\.)(?=[\\s\\S]*\\S)[\\s\\S]*[^.]$"
+    },
+    "toolRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "effect", "tools"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonblankString" },
+        "effect": { "$ref": "#/$defs/effect" },
+        "tools": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonblankString" }
+        }
+      }
+    },
+    "argumentRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "effect", "tool", "path", "operator"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonblankString" },
+        "effect": { "$ref": "#/$defs/effect" },
+        "tool": { "$ref": "#/$defs/nonblankString" },
+        "path": { "$ref": "#/$defs/dottedPath" },
+        "operator": { "enum": ["equals", "contains", "matches", "present"] },
+        "value": { "$ref": "#/$defs/primitive" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "operator": { "enum": ["equals", "contains"] } },
+            "required": ["operator"]
+          },
+          "then": {
+            "required": ["value"],
+            "properties": { "value": { "$ref": "#/$defs/primitive" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "operator": { "const": "matches" } },
+            "required": ["operator"]
+          },
+          "then": {
+            "required": ["value"],
+            "properties": { "value": { "type": "string" } }
+          }
+        }
+      ]
+    },
+    "pathRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "effect", "tool", "argument", "roots"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonblankString" },
+        "effect": { "$ref": "#/$defs/effect" },
+        "tool": { "$ref": "#/$defs/nonblankString" },
+        "argument": { "$ref": "#/$defs/dottedPath" },
+        "roots": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonblankString" }
+        }
+      }
+    },
+    "hostRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "effect", "tool", "argument", "hosts"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonblankString" },
+        "effect": { "$ref": "#/$defs/effect" },
+        "tool": { "$ref": "#/$defs/nonblankString" },
+        "argument": { "$ref": "#/$defs/dottedPath" },
+        "hosts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^(?:\\*\\.)?[^/:?#@\\s]+$"
+          }
+        }
+      }
+    },
+    "quotaRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "tool", "limit"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonblankString" },
+        "tool": { "$ref": "#/$defs/nonblankString" },
+        "limit": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

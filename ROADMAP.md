@@ -2,7 +2,8 @@
 
 ## 0.2
 
-- Publish policy and audit JSON Schemas plus compatibility fixtures.
+- Publish the audit JSON Schema and extend the compatibility fixtures. The
+  policy JSON Schema and its initial conformance matrix are available now.
 - Add a real opt-in stdio transport adapter with process isolation guidance.
 - Add richer JSON-path predicates and policy coverage reports.
 

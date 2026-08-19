@@ -1,0 +1,7 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-extra-field",
+  "defaultEffect": "deny",
+  "toolRules": [],
+  "fallbackEffect": "allow"
+}
