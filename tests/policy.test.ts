@@ -134,9 +134,12 @@ test("runtime policy validation rejects malformed fail-open rules and quotas", (
   };
   assert.throws(() => new PolicyEngine({ ...base, argumentRules: [{ id: "bad", effect: "deny", tool: "*", path: "x", operator: "typo" as "present" }] }), /unsupported operator/u);
   assert.throws(() => new PolicyEngine({ ...base, argumentRules: [{ id: "bad-equals", effect: "deny", tool: "*", path: "x", operator: "equals", value: {} as unknown as string }] }), /primitive value/u);
+  assert.throws(() => new PolicyEngine({ ...base, argumentRules: [{ id: "bad-present", effect: "deny", tool: "*", path: "x", operator: "present", value: null as unknown as string }] }), /primitive value/u);
   assert.throws(() => new PolicyEngine({ ...base, argumentRules: [{ id: "bad-path", effect: "deny", tool: "*", path: "a..b", operator: "present" }] }), /empty segment/u);
   assert.throws(() => new PolicyEngine({ ...base, quotas: [{ id: "q", tool: "*", limit: "unlimited" as unknown as number }] }), /nonnegative safe integer/u);
-  assert.throws(() => new PolicyEngine({ ...base, hostRules: [{ id: "h", effect: "allow", tool: "*", argument: "url", hosts: ["*."] }] }), /invalid hostname/u);
+  for (const host of ["*.", "docs example.test"]) {
+    assert.throws(() => new PolicyEngine({ ...base, hostRules: [{ id: "h", effect: "allow", tool: "*", argument: "url", hosts: [host] }] }), /invalid hostname/u);
+  }
   assert.throws(() => new PolicyEngine({ ...base, quotaRules: [{ id: "q", tool: "*", limit: 0 }] } as unknown as Policy), /unsupported field quotaRules/u);
 });
 

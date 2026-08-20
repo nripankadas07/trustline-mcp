@@ -15,9 +15,12 @@ portably here, including:
 
 - rule IDs are unique across every rule family;
 - `redactKeys` are unique without regard to case;
-- match patterns use Trustline's bounded safe-regex subset;
-- host allowlists reject malformed hostnames; and
-- quota limits are JavaScript safe integers.
+- match patterns use Trustline's bounded safe-regex subset.
+
+The portable schema and runtime both enforce nonnegative JavaScript safe-integer
+quota limits, primitive argument-rule values, and host allowlist lexical
+constraints. The checks listed above remain runtime-only because JSON Schema
+cannot express them portably in this contract.
 
 Use `fixtures/conformance/manifest.json` to test both layers. A case may be
 schema-valid and runtime-invalid by design.

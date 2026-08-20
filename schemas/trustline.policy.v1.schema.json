@@ -134,7 +134,7 @@
           "minItems": 1,
           "items": {
             "type": "string",
-            "pattern": "^(?:\\*\\.)?[^/:?#@\\s]+$"
+            "pattern": "^(?!\\*\\.$)(?:\\*\\.)?[^/:?#@\\s]+$"
           }
         }
       }
@@ -146,7 +146,11 @@
       "properties": {
         "id": { "$ref": "#/$defs/nonblankString" },
         "tool": { "$ref": "#/$defs/nonblankString" },
-        "limit": { "type": "integer", "minimum": 0 }
+        "limit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
       }
     }
   }

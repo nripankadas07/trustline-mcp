@@ -1,0 +1,13 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-unsafe-quota",
+  "defaultEffect": "deny",
+  "toolRules": [],
+  "quotas": [
+    {
+      "id": "unsafe-quota",
+      "tool": "repo.read",
+      "limit": 9007199254740992
+    }
+  ]
+}

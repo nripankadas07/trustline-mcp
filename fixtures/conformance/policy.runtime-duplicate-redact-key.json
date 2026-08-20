@@ -1,0 +1,7 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-duplicate-redact-key",
+  "defaultEffect": "deny",
+  "toolRules": [],
+  "redactKeys": ["Token", "token"]
+}

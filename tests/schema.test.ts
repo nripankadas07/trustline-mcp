@@ -9,6 +9,7 @@ interface ConformanceCase {
   file: string;
   schemaValid: boolean;
   runtimeValid: boolean;
+  runtimeErrorIncludes?: string;
 }
 
 interface ConformanceManifest {
@@ -21,12 +22,20 @@ async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, "utf8")) as unknown;
 }
 
-function runtimeAccepts(value: unknown): boolean {
+interface RuntimeResult {
+  valid: boolean;
+  error?: string;
+}
+
+function validateAtRuntime(value: unknown): RuntimeResult {
   try {
     assertPolicy(value);
-    return true;
-  } catch {
-    return false;
+    return { valid: true };
+  } catch (error: unknown) {
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
@@ -40,16 +49,24 @@ test("published policy schema and runtime agree with the conformance manifest", 
 
   for (const conformanceCase of manifest.cases) {
     const value = await readJson(join(dirname(manifestPath), conformanceCase.file));
+    const runtimeResult = validateAtRuntime(value);
     assert.equal(
       validate(value),
       conformanceCase.schemaValid,
       `${conformanceCase.file}: ${JSON.stringify(validate.errors)}`,
     );
     assert.equal(
-      runtimeAccepts(value),
+      runtimeResult.valid,
       conformanceCase.runtimeValid,
-      `${conformanceCase.file}: unexpected runtime validation result`,
+      `${conformanceCase.file}: ${runtimeResult.error ?? "unexpected runtime validation result"}`,
     );
+    if (conformanceCase.runtimeErrorIncludes !== undefined) {
+      assert.equal(runtimeResult.valid, false, `${conformanceCase.file}: expected a runtime error`);
+      assert.ok(
+        runtimeResult.error?.includes(conformanceCase.runtimeErrorIncludes),
+        `${conformanceCase.file}: expected runtime error containing ${JSON.stringify(conformanceCase.runtimeErrorIncludes)}, got ${JSON.stringify(runtimeResult.error)}`,
+      );
+    }
   }
 });
 
