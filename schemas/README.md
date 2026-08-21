@@ -9,6 +9,12 @@ field rather than assuming forward compatibility.
 `trustline.policy.v1.schema.json` describes the portable JSON shape accepted by
 `trustline.policy/v1`.
 
+When Trustline is installed as a package, resolve the schema through
+`trustline-mcp/schemas/trustline.policy.v1.schema.json`. The conformance entry
+point is exported separately as
+`trustline-mcp/fixtures/conformance/manifest.json`; its case files are relative
+to the manifest and are included in the package.
+
 JSON Schema is the adapter edge, not a replacement for `assertPolicy`. The
 runtime additionally enforces constraints that JSON Schema cannot express
 portably here, including:
