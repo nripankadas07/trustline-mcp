@@ -1,0 +1,16 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-present-nonprimitive",
+  "defaultEffect": "deny",
+  "toolRules": [],
+  "argumentRules": [
+    {
+      "id": "present-with-nonprimitive",
+      "effect": "deny",
+      "tool": "repo.read",
+      "path": "path",
+      "operator": "present",
+      "value": null
+    }
+  ]
+}

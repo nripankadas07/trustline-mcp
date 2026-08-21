@@ -72,6 +72,7 @@ export interface Decision {
 
 const EFFECTS = new Set<unknown>(["allow", "approval", "deny"]);
 const ARGUMENT_OPERATORS = new Set<unknown>(["equals", "contains", "matches", "present"]);
+const HOST_PATTERN = /^(?!\*\.$)(?:\*\.)?[^/:?#@\s]+$/u;
 export const MAX_REGEX_PATTERN_LENGTH = 256;
 export const MAX_REGEX_ARGUMENT_LENGTH = 100_000;
 
@@ -348,7 +349,7 @@ export function assertPolicy(value: unknown): asserts value is Policy {
     if (candidate.path.split(".").some((segment) => segment.length === 0)) throw new Error(`argument rule ${id} path contains an empty segment`);
     if (!ARGUMENT_OPERATORS.has(candidate.operator)) throw new Error(`argument rule ${id} has an unsupported operator`);
     if (["equals", "contains", "matches"].includes(String(candidate.operator)) && candidate.value === undefined) throw new Error(`argument rule ${id} requires a value`);
-    if (candidate.operator === "equals" && !["string", "number", "boolean"].includes(typeof candidate.value)) throw new Error(`argument rule ${id} equals requires a primitive value`);
+    if (Object.hasOwn(candidate, "value") && !["string", "number", "boolean"].includes(typeof candidate.value)) throw new Error(`argument rule ${id} value must be a primitive value`);
     if (typeof candidate.value === "number" && !Number.isFinite(candidate.value)) throw new Error(`argument rule ${id} value must be finite`);
     if (candidate.operator === "matches") {
       if (typeof candidate.value !== "string") throw new Error(`argument rule ${id} requires a string regex`);
@@ -378,7 +379,7 @@ export function assertPolicy(value: unknown): asserts value is Policy {
     if (candidate.argument.split(".").some((segment) => segment.length === 0)) throw new Error(`host rule ${id} argument contains an empty segment`);
     requireStringArray(candidate.hosts, `host rule ${id} hosts`);
     for (const host of candidate.hosts) {
-      if (host === "*." || /[/:?#@]/u.test(host.replace(/^\*\./u, ""))) throw new Error(`host rule ${id} contains an invalid hostname`);
+      if (!HOST_PATTERN.test(host)) throw new Error(`host rule ${id} contains an invalid hostname`);
     }
   }
   for (const candidate of optionalArray("quotas")) {

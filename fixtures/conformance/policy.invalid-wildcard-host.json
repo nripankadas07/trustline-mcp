@@ -1,0 +1,15 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-wildcard-host",
+  "defaultEffect": "deny",
+  "toolRules": [],
+  "hostRules": [
+    {
+      "id": "invalid-wildcard-host",
+      "effect": "allow",
+      "tool": "docs.search",
+      "argument": "url",
+      "hosts": ["*."]
+    }
+  ]
+}
