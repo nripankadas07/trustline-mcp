@@ -2,6 +2,25 @@
 
 All notable changes follow Keep a Changelog principles.
 
+## [Unreleased]
+
+### Added
+
+- Add a dependency-free MCP `2026-07-28` stdio service with discovery and a
+  deterministic two-tool catalog for transcript simulation and audit
+  verification.
+- Validate interoperability with the official MCP v2 client while keeping the
+  published package's runtime dependency set empty.
+- Bound UTF-8 frames, JSON structure, policy work, transcript inputs, and
+  response size; apply an aggregate policy-by-transcript work budget; and
+  recover cleanly after malformed, invalid-encoding, or oversized lines.
+
+### Changed
+
+- Replace dynamic regular-expression construction for tool-name globs with an
+  explicit wildcard state machine while preserving the existing anchored `*`
+  behavior.
+
 ## [0.1.1] - 2026-08-16
 
 ### Changed

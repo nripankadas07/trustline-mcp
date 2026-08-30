@@ -2,11 +2,14 @@ import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 const packageJson = JSON.parse(await readFile("package.json", "utf8"));
 const packageName = packageJson.name;
 const binName = Object.keys(packageJson.bin ?? {})[0];
 if (typeof packageName !== "string" || typeof binName !== "string") throw new Error("package name and bin are required");
+if (Object.keys(packageJson.dependencies ?? {}).length !== 0) throw new Error("runtime dependencies must remain empty");
 
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 function run(command, args, cwd) {
@@ -40,7 +43,21 @@ try {
   `], consumer);
   const executable = join(consumer, "node_modules", ".bin", process.platform === "win32" ? `${binName}.cmd` : binName);
   run(executable, ["--help"], consumer);
-  console.log(JSON.stringify({ package: packageName, archive: archives[0], import: "ok", artifacts: "ok", cli: "ok" }));
+  const installedCli = join(consumer, "node_modules", packageName, "dist", "src", "cli.js");
+  const transport = new StdioClientTransport({ command: process.execPath, args: [installedCli, "serve-stdio"], cwd: consumer, stderr: "pipe" });
+  const client = new Client(
+    { name: `${packageName}-package-smoke`, version: "1.0.0" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+  );
+  try {
+    await client.connect(transport);
+    const tools = (await client.listTools()).tools.map((tool) => tool.name);
+    if (client.getProtocolEra() !== "modern") throw new Error("installed stdio CLI did not negotiate modern MCP");
+    if (JSON.stringify(tools) !== JSON.stringify(["trustline.simulate", "trustline.verify"])) throw new Error("installed stdio CLI returned an unexpected tool catalog");
+  } finally {
+    await client.close();
+  }
+  console.log(JSON.stringify({ package: packageName, archive: archives[0], import: "ok", artifacts: "ok", cli: "ok", stdio: "ok", runtimeDependencies: 0 }));
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }
