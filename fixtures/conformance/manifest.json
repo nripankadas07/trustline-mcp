@@ -8,6 +8,11 @@
       "runtimeValid": true
     },
     {
+      "file": "policy.valid-canonical-hosts.json",
+      "schemaValid": true,
+      "runtimeValid": true
+    },
+    {
       "file": "policy.invalid-extra-field.json",
       "schemaValid": false,
       "runtimeValid": false,
@@ -48,6 +53,12 @@
       "schemaValid": true,
       "runtimeValid": false,
       "runtimeErrorIncludes": "safe regex subset"
+    },
+    {
+      "file": "policy.runtime-invalid-host.json",
+      "schemaValid": true,
+      "runtimeValid": false,
+      "runtimeErrorIncludes": "invalid hostname"
     },
     {
       "file": "policy.runtime-duplicate-id.json",

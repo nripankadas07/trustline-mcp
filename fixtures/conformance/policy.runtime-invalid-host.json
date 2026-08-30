@@ -1,0 +1,15 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-unusable-host",
+  "defaultEffect": "deny",
+  "toolRules": [],
+  "hostRules": [
+    {
+      "id": "unusable-host",
+      "effect": "deny",
+      "tool": "docs.search",
+      "argument": "url",
+      "hosts": ["xn--"]
+    }
+  ]
+}

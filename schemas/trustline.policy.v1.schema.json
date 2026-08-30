@@ -134,7 +134,8 @@
           "minItems": 1,
           "items": {
             "type": "string",
-            "pattern": "^(?!\\*\\.$)(?:\\*\\.)?[^/:?#@\\s]+$"
+            "description": "Hostname with an optional leading wildcard. DNS case, IDNA, and one terminal root dot are canonicalized before matching.",
+            "pattern": "^(?:\\*\\.)?(?!\\.)(?!.*\\.\\.)[^*%/\\\\:?#@\\s]+$"
           }
         }
       }

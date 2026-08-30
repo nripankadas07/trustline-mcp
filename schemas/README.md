@@ -22,11 +22,17 @@ portably here, including:
 - rule IDs are unique across every rule family;
 - `redactKeys` are unique without regard to case;
 - match patterns use Trustline's bounded safe-regex subset.
+- host entries must produce a usable canonical URL hostname.
 
 The portable schema and runtime both enforce nonnegative JavaScript safe-integer
 quota limits, primitive argument-rule values, and host allowlist lexical
 constraints. The checks listed above remain runtime-only because JSON Schema
 cannot express them portably in this contract.
+
+Host matching canonicalizes configured entries and request URLs identically:
+DNS case is folded, internationalized names use their URL/IDNA ASCII form, and
+a terminal DNS root dot is ignored. A leading `*.` continues to match
+subdomains only, after the suffix has been canonicalized.
 
 Use `fixtures/conformance/manifest.json` to test both layers. A case may be
 schema-valid and runtime-invalid by design.
