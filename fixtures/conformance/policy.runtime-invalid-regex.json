@@ -1,0 +1,16 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-unsafe-pattern",
+  "defaultEffect": "deny",
+  "toolRules": [],
+  "argumentRules": [
+    {
+      "id": "unsafe-pattern",
+      "effect": "deny",
+      "tool": "repo.read",
+      "path": "path",
+      "operator": "matches",
+      "value": "^(a+)+$"
+    }
+  ]
+}

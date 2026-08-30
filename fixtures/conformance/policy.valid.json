@@ -1,0 +1,40 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-valid",
+  "defaultEffect": "deny",
+  "toolRules": [
+    { "id": "allow-read", "effect": "allow", "tools": ["repo.read"] }
+  ],
+  "argumentRules": [
+    {
+      "id": "deny-secret",
+      "effect": "deny",
+      "tool": "repo.read",
+      "path": "path",
+      "operator": "contains",
+      "value": ".env"
+    }
+  ],
+  "pathRules": [
+    {
+      "id": "workspace-only",
+      "effect": "allow",
+      "tool": "repo.read",
+      "argument": "path",
+      "roots": ["/workspace"]
+    }
+  ],
+  "hostRules": [
+    {
+      "id": "docs-host",
+      "effect": "allow",
+      "tool": "docs.search",
+      "argument": "url",
+      "hosts": ["docs.example.test", "*.example.test"]
+    }
+  ],
+  "quotas": [
+    { "id": "read-budget", "tool": "repo.read", "limit": 20 }
+  ],
+  "redactKeys": ["token", "api_key"]
+}

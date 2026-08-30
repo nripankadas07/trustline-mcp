@@ -1,0 +1,11 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-duplicate-id",
+  "defaultEffect": "deny",
+  "toolRules": [
+    { "id": "shared-id", "effect": "allow", "tools": ["repo.read"] }
+  ],
+  "quotas": [
+    { "id": "shared-id", "tool": "repo.read", "limit": 1 }
+  ]
+}

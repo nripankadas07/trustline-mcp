@@ -24,9 +24,23 @@ try {
   await writeFile(join(consumer, "package.json"), '{"private":true,"type":"module"}\n');
   run(npm, ["install", join(temporary, archives[0]), "--ignore-scripts", "--no-audit", "--no-fund"], consumer);
   run(process.execPath, ["--input-type=module", "-e", `const loaded=await import(${JSON.stringify(packageName)}); if(Object.keys(loaded).length===0) process.exit(3)`], consumer);
+  run(process.execPath, ["--input-type=module", "-e", `
+    import { readFile } from "node:fs/promises";
+    const schema = JSON.parse(await readFile(new URL(import.meta.resolve(${JSON.stringify(`${packageName}/schemas/trustline.policy.v1.schema.json`)})), "utf8"));
+    const manifestUrl = new URL(import.meta.resolve(${JSON.stringify(`${packageName}/fixtures/conformance/manifest.json`)}));
+    const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
+    if (schema.properties?.version?.const !== "trustline.policy/v1") process.exit(4);
+    if (manifest.version !== "trustline.conformance/v1") process.exit(5);
+    const declaredSchema = JSON.parse(await readFile(new URL(manifest.schema, manifestUrl), "utf8"));
+    if (declaredSchema.$id !== schema.$id) process.exit(6);
+    if (!Array.isArray(manifest.cases) || manifest.cases.length === 0) process.exit(7);
+    for (const conformanceCase of manifest.cases) {
+      JSON.parse(await readFile(new URL(conformanceCase.file, manifestUrl), "utf8"));
+    }
+  `], consumer);
   const executable = join(consumer, "node_modules", ".bin", process.platform === "win32" ? `${binName}.cmd` : binName);
   run(executable, ["--help"], consumer);
-  console.log(JSON.stringify({ package: packageName, archive: archives[0], import: "ok", cli: "ok" }));
+  console.log(JSON.stringify({ package: packageName, archive: archives[0], import: "ok", artifacts: "ok", cli: "ok" }));
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

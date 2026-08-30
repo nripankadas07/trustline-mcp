@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { demoPolicy } from "../src/demo.js";
-import { MAX_REGEX_ARGUMENT_LENGTH, POLICY_VERSION, PolicyEngine, type Policy } from "../src/policy.js";
+import { MAX_REGEX_ARGUMENT_LENGTH, POLICY_VERSION, PolicyEngine, type ArgumentRule, type PathRule, type Policy } from "../src/policy.js";
 
 test("deny overrides allow and approval", () => {
   const engine = new PolicyEngine(demoPolicy);
@@ -16,6 +16,60 @@ test("path traversal and hosts are denied", () => {
   assert.equal(engine.evaluate({ name: "docs.search", arguments: { url: "http://169.254.169.254/latest" } }).effect, "deny");
 });
 
+test("host rules canonicalize DNS case, IDNA, wildcards, and terminal root dots", () => {
+  const engine = new PolicyEngine({
+    version: POLICY_VERSION,
+    name: "canonical-hosts",
+    defaultEffect: "deny",
+    toolRules: [{ id: "allow-search", effect: "allow", tools: ["docs.search"] }],
+    hostRules: [{
+      id: "blocked-hosts",
+      effect: "deny",
+      tool: "docs.search",
+      argument: "url",
+      hosts: ["BLOCKED.EXAMPLE", "LOCALHOST", "bücher.example", "*.EXAMPLE.TEST."],
+    }],
+  });
+
+  for (const url of [
+    "https://blocked.example./x",
+    "https:/blocked.example/x",
+    "http://LOCALHOST.:3000/",
+    "https://xn--bcher-kva.example/",
+    "https://shop.example.test./",
+    "https://deep.shop.example.test./",
+  ]) {
+    const decision = engine.evaluate({ name: "docs.search", arguments: { url } });
+    assert.equal(decision.effect, "deny", url);
+    assert.deepEqual(decision.matchedRuleIds, ["blocked-hosts"]);
+  }
+  assert.equal(engine.evaluate({ name: "docs.search", arguments: { url: "https://example.test/" } }).effect, "allow");
+  assert.equal(engine.evaluate({ name: "docs.search", arguments: { url: "https://notexample.test/" } }).effect, "allow");
+
+  const allowEngine = new PolicyEngine({
+    version: POLICY_VERSION,
+    name: "canonical-host-allowlist",
+    defaultEffect: "deny",
+    toolRules: [],
+    hostRules: [{
+      id: "allowed-hosts",
+      effect: "allow",
+      tool: "docs.search",
+      argument: "url",
+      hosts: ["DOCS.EXAMPLE.TEST.", "xn--bcher-kva.example"],
+    }],
+  });
+  assert.equal(allowEngine.evaluate({ name: "docs.search", arguments: { url: "https://docs.example.test./" } }).effect, "allow");
+  assert.equal(allowEngine.evaluate({ name: "docs.search", arguments: { url: "https://BÜCHER.EXAMPLE/" } }).effect, "allow");
+  assert.equal(allowEngine.evaluate({ name: "docs.search", arguments: { url: "foo://BÜCHER.EXAMPLE/" } }).effect, "allow");
+  assert.equal(allowEngine.evaluate({ name: "docs.search", arguments: { url: "docs.example.test/search?next=https://other.test" } }).effect, "allow");
+  for (const url of ["https://docs.example.test../", "https://docs.example.test.../"]) {
+    const decision = allowEngine.evaluate({ name: "docs.search", arguments: { url } });
+    assert.equal(decision.effect, "deny", url);
+    assert.ok(decision.reasonCodes.includes("host-invalid"));
+  }
+});
+
 test("path and host allowlists fail closed on missing, non-string, and malformed arguments", () => {
   const engine = new PolicyEngine(demoPolicy);
   for (const path of [undefined, 42, "", "bad\0path"]) {
@@ -24,7 +78,7 @@ test("path and host allowlists fail closed on missing, non-string, and malformed
     assert.equal(decision.effect, "deny");
     assert.ok(decision.reasonCodes.includes("path-invalid"));
   }
-  for (const url of [undefined, 42, "", "http://["]) {
+  for (const url of [undefined, 42, "", "http://[", "https://docs.example.test../x"]) {
     const args = url === undefined ? {} : { url };
     const decision = engine.evaluate({ name: "docs.search", arguments: args });
     assert.equal(decision.effect, "deny");
@@ -134,9 +188,12 @@ test("runtime policy validation rejects malformed fail-open rules and quotas", (
   };
   assert.throws(() => new PolicyEngine({ ...base, argumentRules: [{ id: "bad", effect: "deny", tool: "*", path: "x", operator: "typo" as "present" }] }), /unsupported operator/u);
   assert.throws(() => new PolicyEngine({ ...base, argumentRules: [{ id: "bad-equals", effect: "deny", tool: "*", path: "x", operator: "equals", value: {} as unknown as string }] }), /primitive value/u);
+  assert.throws(() => new PolicyEngine({ ...base, argumentRules: [{ id: "bad-present", effect: "deny", tool: "*", path: "x", operator: "present", value: null as unknown as string }] }), /primitive value/u);
   assert.throws(() => new PolicyEngine({ ...base, argumentRules: [{ id: "bad-path", effect: "deny", tool: "*", path: "a..b", operator: "present" }] }), /empty segment/u);
   assert.throws(() => new PolicyEngine({ ...base, quotas: [{ id: "q", tool: "*", limit: "unlimited" as unknown as number }] }), /nonnegative safe integer/u);
-  assert.throws(() => new PolicyEngine({ ...base, hostRules: [{ id: "h", effect: "allow", tool: "*", argument: "url", hosts: ["*."] }] }), /invalid hostname/u);
+  for (const host of ["*.", "docs example.test", ".example.test", "example..test", "docs*.example.test", "docs.example\\path", "xn--"]) {
+    assert.throws(() => new PolicyEngine({ ...base, hostRules: [{ id: "h", effect: "allow", tool: "*", argument: "url", hosts: [host] }] }), /invalid hostname/u);
+  }
   assert.throws(() => new PolicyEngine({ ...base, quotaRules: [{ id: "q", tool: "*", limit: 0 }] } as unknown as Policy), /unsupported field quotaRules/u);
 });
 
@@ -165,4 +222,16 @@ test("runtime policy validation rejects sparse and extended rule arrays", () => 
   const extended = structuredClone(base.toolRules) as Policy["toolRules"] & { metadata?: string };
   extended.metadata = "not-policy-array-data";
   assert.throws(() => new PolicyEngine({ ...base, toolRules: extended }), /toolRules must be a dense array/u);
+});
+
+test("published rule types encode runtime-mandatory fields", () => {
+  // @ts-expect-error Path rules require roots at both the type and runtime boundaries.
+  const missingRoots: PathRule = { id: "p", effect: "allow", tool: "fixture", argument: "path" };
+  // @ts-expect-error Equality rules require a value at both the type and runtime boundaries.
+  const missingEqualsValue: ArgumentRule = { id: "a", effect: "deny", tool: "fixture", path: "value", operator: "equals" };
+  const presentWithPrimitive: ArgumentRule = { id: "present", effect: "allow", tool: "fixture", path: "value", operator: "present", value: true };
+
+  assert.equal(missingRoots.id, "p");
+  assert.equal(missingEqualsValue.id, "a");
+  assert.equal(presentWithPrimitive.value, true);
 });

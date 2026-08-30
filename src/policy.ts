@@ -1,3 +1,5 @@
+import { domainToASCII } from "node:url";
+
 export const POLICY_VERSION = "trustline.policy/v1" as const;
 
 export type Effect = "allow" | "approval" | "deny";
@@ -9,21 +11,24 @@ export interface ToolRule {
   tools: string[];
 }
 
-export interface ArgumentRule {
+interface ArgumentRuleBase {
   id: string;
   effect: Effect;
   tool: string;
   path: string;
-  operator: "equals" | "contains" | "matches" | "present";
-  value?: string | number | boolean;
 }
+
+export type ArgumentRule =
+  | (ArgumentRuleBase & { operator: "equals" | "contains"; value: string | number | boolean })
+  | (ArgumentRuleBase & { operator: "matches"; value: string })
+  | (ArgumentRuleBase & { operator: "present"; value?: string | number | boolean });
 
 export interface PathRule {
   id: string;
   effect: Effect;
   tool: string;
   argument: string;
-  roots?: string[];
+  roots: string[];
 }
 
 export interface HostRule {
@@ -72,6 +77,8 @@ export interface Decision {
 
 const EFFECTS = new Set<unknown>(["allow", "approval", "deny"]);
 const ARGUMENT_OPERATORS = new Set<unknown>(["equals", "contains", "matches", "present"]);
+const HOST_PATTERN = /^(?:\*\.)?(?!\.)(?!.*\.\.)[^*%/\\:?#@\s]+$/u;
+const ABSOLUTE_URL_PATTERN = /^(?:(?:file|ftp|https?|wss?):|[A-Za-z][A-Za-z0-9+.-]*:\/\/)/iu;
 export const MAX_REGEX_PATTERN_LENGTH = 256;
 export const MAX_REGEX_ARGUMENT_LENGTH = 100_000;
 
@@ -348,7 +355,7 @@ export function assertPolicy(value: unknown): asserts value is Policy {
     if (candidate.path.split(".").some((segment) => segment.length === 0)) throw new Error(`argument rule ${id} path contains an empty segment`);
     if (!ARGUMENT_OPERATORS.has(candidate.operator)) throw new Error(`argument rule ${id} has an unsupported operator`);
     if (["equals", "contains", "matches"].includes(String(candidate.operator)) && candidate.value === undefined) throw new Error(`argument rule ${id} requires a value`);
-    if (candidate.operator === "equals" && !["string", "number", "boolean"].includes(typeof candidate.value)) throw new Error(`argument rule ${id} equals requires a primitive value`);
+    if (Object.hasOwn(candidate, "value") && !["string", "number", "boolean"].includes(typeof candidate.value)) throw new Error(`argument rule ${id} value must be a primitive value`);
     if (typeof candidate.value === "number" && !Number.isFinite(candidate.value)) throw new Error(`argument rule ${id} value must be finite`);
     if (candidate.operator === "matches") {
       if (typeof candidate.value !== "string") throw new Error(`argument rule ${id} requires a string regex`);
@@ -378,7 +385,7 @@ export function assertPolicy(value: unknown): asserts value is Policy {
     if (candidate.argument.split(".").some((segment) => segment.length === 0)) throw new Error(`host rule ${id} argument contains an empty segment`);
     requireStringArray(candidate.hosts, `host rule ${id} hosts`);
     for (const host of candidate.hosts) {
-      if (host === "*." || /[/:?#@]/u.test(host.replace(/^\*\./u, ""))) throw new Error(`host rule ${id} contains an invalid hostname`);
+      if (canonicalHostPattern(host) === undefined) throw new Error(`host rule ${id} contains an invalid hostname`);
     }
   }
   for (const candidate of optionalArray("quotas")) {
@@ -431,13 +438,28 @@ function normalizePathCandidate(value: unknown): { value?: string; invalid: bool
 
 function extractHost(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
-  try { return new URL(value.includes("://") ? value : `https://${value}`).hostname.toLowerCase(); }
+  try {
+    const parsed = new URL(ABSOLUTE_URL_PATTERN.test(value) ? value : `https://${value}`);
+    const hostname = domainToASCII(parsed.hostname).toLowerCase();
+    if (hostname.startsWith("*.") || !HOST_PATTERN.test(hostname)) return undefined;
+    const canonical = hostname.endsWith(".") ? hostname.slice(0, -1) : hostname;
+    return canonical.length > 0 ? canonical : undefined;
+  }
   catch { return undefined; }
+}
+
+function canonicalHostPattern(value: string): string | undefined {
+  if (!HOST_PATTERN.test(value)) return undefined;
+  const wildcard = value.startsWith("*.");
+  const hostname = extractHost(wildcard ? value.slice(2) : value);
+  if (hostname === undefined) return undefined;
+  return wildcard ? `*.${hostname}` : hostname;
 }
 
 export class PolicyEngine {
   readonly #counts = new Map<string, number>();
   readonly #argumentPatterns = new Map<string, SafePattern>();
+  readonly #hostPatterns = new Map<string, string[]>();
   readonly policy: Policy;
 
   constructor(policy: Policy) {
@@ -447,6 +469,13 @@ export class PolicyEngine {
       if (rule.operator === "matches" && typeof rule.value === "string") {
         this.#argumentPatterns.set(rule.id, compileSafePattern(rule.value, `argument rule ${rule.id}`));
       }
+    }
+    for (const rule of this.policy.hostRules ?? []) {
+      this.#hostPatterns.set(rule.id, rule.hosts.map((host) => {
+        const canonical = canonicalHostPattern(host);
+        if (canonical === undefined) throw new Error(`host rule ${rule.id} contains an invalid hostname`);
+        return canonical;
+      }));
     }
   }
 
@@ -476,7 +505,7 @@ export class PolicyEngine {
         continue;
       }
       if (candidate.traversal) matches.push({ id: `${rule.id}:traversal`, effect: "deny", reason: "path-traversal" });
-      if (candidate.value !== undefined && rule.roots !== undefined) {
+      if (candidate.value !== undefined) {
         const normalized = candidate.value.replaceAll("\\", "/");
         const inRoot = rule.roots.some((root) => normalized === root || normalized.startsWith(`${root.replace(/\/$/, "")}/`));
         if (inRoot) matches.push({ id: rule.id, effect: rule.effect, reason: `path-${rule.effect}` });
@@ -490,7 +519,7 @@ export class PolicyEngine {
         if (rule.effect === "allow") matches.push({ id: `${rule.id}:invalid-host`, effect: "deny", reason: "host-invalid" });
         continue;
       }
-      const listed = rule.hosts.some((entry) => entry === host || (entry.startsWith("*.") && host.endsWith(entry.slice(1))));
+      const listed = (this.#hostPatterns.get(rule.id) ?? []).some((entry) => entry === host || (entry.startsWith("*.") && host.endsWith(entry.slice(1))));
       if (listed) matches.push({ id: rule.id, effect: rule.effect, reason: `host-${rule.effect}` });
       else if (rule.effect === "allow") matches.push({ id: `${rule.id}:unlisted`, effect: "deny", reason: "host-unlisted" });
     }

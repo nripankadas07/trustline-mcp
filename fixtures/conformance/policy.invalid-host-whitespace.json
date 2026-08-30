@@ -1,0 +1,15 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-host-whitespace",
+  "defaultEffect": "deny",
+  "toolRules": [],
+  "hostRules": [
+    {
+      "id": "invalid-host",
+      "effect": "allow",
+      "tool": "docs.search",
+      "argument": "url",
+      "hosts": ["docs example.test"]
+    }
+  ]
+}

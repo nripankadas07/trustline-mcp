@@ -1,0 +1,15 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-canonical-hosts",
+  "defaultEffect": "deny",
+  "toolRules": [],
+  "hostRules": [
+    {
+      "id": "canonical-hosts",
+      "effect": "deny",
+      "tool": "docs.search",
+      "argument": "url",
+      "hosts": ["LOCALHOST.", "BÜCHER.EXAMPLE", "*.EXAMPLE.TEST."]
+    }
+  ]
+}

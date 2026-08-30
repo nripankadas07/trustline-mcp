@@ -11,6 +11,7 @@ It is deliberately honest about scope: this repository is an offline transcript 
 - Deny always overrides allow and approval.
 - Rules cover tool names, nested arguments, filesystem roots, hosts, quotas, and explicit approvals.
 - Applicable path and host allowlists fail closed when their argument is missing, non-string, or malformed; approvals require a nonblank reviewer identity.
+- Host comparisons canonicalize DNS case, internationalized names, and terminal root dots before exact or leading-wildcard matching.
 - Invalid or resource-unsafe configured patterns are rejected when the policy engine is constructed; a dedicated bounded interpreter handles the supported subset without dynamically compiling policy text as JavaScript regular expressions.
 - Secret-bearing keys, URL credentials/query secrets, and common credential shapes are redacted before hashing.
 - Runtime policy validation rejects malformed rule operators, effects, host/path lists, and quota limits before evaluation.
@@ -62,6 +63,31 @@ An allowed call invokes only a hard-coded offline fixture implementation. `shell
 
 Breaking schema changes require a new version identifier.
 
+The standalone JSON Schema for `trustline.policy/v1` lives at
+[`schemas/trustline.policy.v1.schema.json`](schemas/trustline.policy.v1.schema.json).
+The checked-in conformance manifest includes both schema failures and cases that
+require Trustline's stricter runtime checks, such as unsafe patterns and rule-id
+collisions.
+
+Installed consumers can resolve both public artifacts without assuming a
+`node_modules` layout:
+
+```js
+import { readFile } from "node:fs/promises";
+
+const schemaUrl = import.meta.resolve(
+  "trustline-mcp/schemas/trustline.policy.v1.schema.json",
+);
+const manifestUrl = import.meta.resolve(
+  "trustline-mcp/fixtures/conformance/manifest.json",
+);
+const schema = JSON.parse(await readFile(new URL(schemaUrl), "utf8"));
+const manifest = JSON.parse(await readFile(new URL(manifestUrl), "utf8"));
+```
+
+The package smoke test installs the generated tarball and executes these exact
+subpath resolutions, so missing files or export-map drift fail CI.
+
 An audit bundle contains the complete declared policy, its canonical digest, and the entries anchored to that digest. Verification proves bundle self-consistency and detects accidental or post-hoc mutation; it does not authenticate who created the policy or prevent an attacker from replacing and rehashing the entire unsigned bundle.
 
 ## Repository map
@@ -73,6 +99,8 @@ An audit bundle contains the complete declared policy, its canonical digest, and
 - `fixtures/` — line-oriented attack transcript (including one intentional
   malformed record) and matching policy.
 - `tests/` — policy unit tests and end-to-end artifact/tamper tests.
+- `schemas/` — standalone versioned JSON Schemas and compatibility notes.
+- `fixtures/conformance/` — machine-readable schema/runtime conformance cases.
 
 See [architecture](docs/ARCHITECTURE.md), [limitations](docs/LIMITATIONS.md), and [research notes](docs/RESEARCH.md).
 

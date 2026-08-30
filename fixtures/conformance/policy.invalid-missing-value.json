@@ -1,0 +1,15 @@
+{
+  "version": "trustline.policy/v1",
+  "name": "conformance-missing-value",
+  "defaultEffect": "deny",
+  "toolRules": [],
+  "argumentRules": [
+    {
+      "id": "missing-value",
+      "effect": "deny",
+      "tool": "repo.read",
+      "path": "path",
+      "operator": "equals"
+    }
+  ]
+}
