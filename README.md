@@ -1,8 +1,8 @@
 # Trustline MCP
 
-Trustline MCP is a deterministic, zero-runtime-dependency policy lab for MCP-style `tools/call` JSON-RPC transcripts. It evaluates deny-overrides rules, simulates allowed fixture tools without executing commands, redacts secrets, and writes a chained audit that can be verified after the run.
+Trustline MCP is a deterministic, zero-runtime-dependency policy lab for MCP-style `tools/call` JSON-RPC transcripts. It evaluates deny-overrides rules, simulates allowed fixture tools without executing commands, redacts request and response secrets, and writes a chained audit that can be verified after the run.
 
-It is deliberately honest about scope: this repository is an offline transcript proxy/simulator. It does **not** claim production OAuth enforcement, network interception, HTTP proxying, or sandbox isolation.
+It also provides an opt-in MCP `2026-07-28` stdio service so real clients can invoke the simulator and verifier. The service is a transport for the offline policy lab, not a transparent tool proxy: it does **not** claim production OAuth enforcement, downstream tool execution, network interception, HTTP proxying, or sandbox isolation.
 
 ![Trustline MCP deterministic policy and audit report](assets/demo.jpg)
 
@@ -19,6 +19,8 @@ It is deliberately honest about scope: this repository is an offline transcript 
 - Every audit entry commits to the declared policy digest and previous entry with canonical JSON and SHA-256.
 - The included attack fixture covers traversal, link-local access, quota exhaustion, destructive shell text, missing approval, unknown tools, and malformed JSON-RPC.
 - Demo outputs are deterministic JSON, Markdown, and a self-contained HTML report.
+- `serve-stdio` exposes the simulator and verifier to current MCP clients without
+  adding a runtime SDK dependency or relying on connection state.
 
 ## Quick start
 
@@ -41,6 +43,62 @@ node dist/src/cli.js simulate fixtures/policy.json fixtures/attack-transcript.tx
 
 The line-oriented `.txt` attack fixture intentionally ends with malformed JSON
 to prove the protocol-error path; it is not advertised as a valid JSONL stream.
+
+## MCP stdio quickstart
+
+Build the CLI, then register this command in an MCP `2026-07-28` client:
+
+```text
+node /absolute/path/to/trustline-mcp/dist/src/cli.js serve-stdio
+```
+
+Client configuration formats differ, but a typical local-server entry looks
+like this:
+
+```json
+{
+  "mcpServers": {
+    "trustline-policy-lab": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/trustline-mcp/dist/src/cli.js",
+        "serve-stdio"
+      ]
+    }
+  }
+}
+```
+
+For a direct discovery smoke test:
+
+```bash
+printf '%s\n' '{"jsonrpc":"2.0","id":"discover-1","method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"stdio-smoke","version":"1.0.0"},"io.modelcontextprotocol/clientCapabilities":{}}}}' \
+  | node dist/src/cli.js serve-stdio
+```
+
+The deterministic catalog contains two stateless tools:
+
+- `trustline.simulate` accepts one complete `trustline.policy/v1` value and an
+  array of transcript-message strings. Quotas and audit chaining apply within
+  that one invocation.
+- `trustline.verify` checks a `trustline.audit-bundle/v1` value.
+
+The outer service transport follows modern MCP framing, discovery, metadata,
+and tool-result shapes. The inner transcript remains Trustline's simplified
+replay format: it is not an MCP conformance trace, and its `approvedBy` value is
+unauthenticated replay data rather than a verified identity.
+
+The server accepts at most a 1 MiB outer message, 256 transcript entries,
+32 KiB per transcript entry, 256 KiB of transcript text, 1,024 policy rules,
+64 JSON nesting levels, and 20,000 JSON nodes. An 8,000,000-unit aggregate
+admission budget multiplies the complete policy's structural/string weight by
+transcript bytes plus entry count, so even empty entries carry their per-entry
+setup cost and callers cannot combine every independent maximum into an
+unbounded synchronous evaluation. It rejects invalid UTF-8 and resynchronizes
+at the next newline. Run any parser of untrusted input with a minimal
+environment, least-privilege account, dedicated working directory, and
+operating-system CPU and memory limits. Closing stdin is the graceful shutdown
+signal.
 
 ## Decision model
 
@@ -88,7 +146,7 @@ const manifest = JSON.parse(await readFile(new URL(manifestUrl), "utf8"));
 The package smoke test installs the generated tarball and executes these exact
 subpath resolutions, so missing files or export-map drift fail CI.
 
-An audit bundle contains the complete declared policy, its canonical digest, and the entries anchored to that digest. Verification proves bundle self-consistency and detects accidental or post-hoc mutation; it does not authenticate who created the policy or prevent an attacker from replacing and rehashing the entire unsigned bundle.
+An audit bundle contains the complete declared policy, its canonical digest, and the entries anchored to that digest. Request and response fields are redacted, but the embedded policy is not: do not put secrets in policy names, rule IDs, rule values, or other policy metadata. Verification proves bundle self-consistency and detects accidental or post-hoc mutation; it does not authenticate who created the policy or prevent an attacker from replacing and rehashing the entire unsigned bundle.
 
 ## Repository map
 

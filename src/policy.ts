@@ -404,8 +404,31 @@ export function assertPolicy(value: unknown): asserts value is Policy {
 function matchTool(pattern: string, tool: string): boolean {
   if (pattern === "*") return true;
   if (!pattern.includes("*")) return pattern === tool;
-  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replaceAll("*", ".*");
-  return new RegExp(`^${escaped}$`).test(tool);
+  let patternIndex = 0;
+  let toolIndex = 0;
+  let starIndex = -1;
+  let starToolIndex = -1;
+  while (toolIndex < tool.length) {
+    const patternCharacter = pattern[patternIndex];
+    if (patternCharacter !== undefined && patternCharacter !== "*" && patternCharacter === tool[toolIndex]) {
+      patternIndex += 1;
+      toolIndex += 1;
+    } else if (patternCharacter === "*") {
+      starIndex = patternIndex;
+      starToolIndex = toolIndex;
+      patternIndex += 1;
+    } else if (starIndex >= 0 && starToolIndex < tool.length) {
+      const consumed = tool[starToolIndex] as string;
+      if (["\n", "\r", "\u2028", "\u2029"].includes(consumed)) return false;
+      starToolIndex += 1;
+      toolIndex = starToolIndex;
+      patternIndex = starIndex + 1;
+    } else {
+      return false;
+    }
+  }
+  while (pattern[patternIndex] === "*") patternIndex += 1;
+  return patternIndex === pattern.length;
 }
 
 function readPath(value: unknown, path: string): unknown {

@@ -141,6 +141,29 @@ test("safe pattern interpreter preserves anchors, boundaries, classes, and negat
   }
 });
 
+test("tool globs preserve anchored wildcard semantics without dynamic regex compilation", () => {
+  const engine = new PolicyEngine({
+    version: POLICY_VERSION,
+    name: "tool-globs",
+    defaultEffect: "deny",
+    toolRules: [{ id: "allow", effect: "allow", tools: ["repo.*.read", "literal.+?"] }],
+  });
+  for (const name of ["repo.alpha.read", "repo.deep.branch.read", "literal.+?"]) {
+    assert.equal(engine.evaluate({ name, arguments: {} }).effect, "allow", name);
+  }
+  for (const name of [
+    "prefix.repo.alpha.read",
+    "repo.alpha.write",
+    "literalX+?",
+    "repo.\nadmin.read",
+    "repo.\radmin.read",
+    "repo.\u2028admin.read",
+    "repo.\u2029admin.read",
+  ]) {
+    assert.equal(engine.evaluate({ name, arguments: {} }).effect, "default-deny", name);
+  }
+});
+
 test("approval identity must be a nonblank string", () => {
   const engine = new PolicyEngine(demoPolicy);
   const call = { name: "shell.safe", arguments: { command: "npm test" } };

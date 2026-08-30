@@ -4,8 +4,9 @@ import { attackTranscript, demoPolicy } from "./demo.js";
 import type { Policy } from "./policy.js";
 import { writeArtifacts } from "./report.js";
 import { auditBundle, simulateTranscript, verifyAudit } from "./simulator.js";
+import { runStdio } from "./stdio.js";
 
-const USAGE = "trustline-mcp demo [OUT]\ntrustline-mcp simulate POLICY.json TRANSCRIPT.jsonl [OUT]\ntrustline-mcp verify AUDIT.json";
+const USAGE = "trustline-mcp demo [OUT]\ntrustline-mcp simulate POLICY.json TRANSCRIPT.jsonl [OUT]\ntrustline-mcp verify AUDIT.json\ntrustline-mcp serve-stdio";
 type CommandHandler = (operands: string[]) => Promise<number>;
 
 const demo: CommandHandler = async (operands) => {
@@ -39,6 +40,12 @@ const verify: CommandHandler = async (operands) => {
   return verification.valid ? 0 : 1;
 };
 
+const serveStdio: CommandHandler = async (operands) => {
+  if (operands.length > 0) throw new Error("serve-stdio does not accept operands");
+  await runStdio(process.stdin, process.stdout);
+  return 0;
+};
+
 const help: CommandHandler = async (operands) => {
   if (operands.length > 0) throw new Error("help does not accept operands");
   console.log(USAGE);
@@ -51,6 +58,7 @@ async function main(args: string[]): Promise<number> {
     case "demo": return demo(operands);
     case "simulate": return simulate(operands);
     case "verify": return verify(operands);
+    case "serve-stdio": return serveStdio(operands);
     case "help":
     case "--help":
     case "-h": return help(operands);

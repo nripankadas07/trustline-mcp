@@ -14,7 +14,14 @@
     "./schemas/trustline.policy.v1.schema.json": "./schemas/trustline.policy.v1.schema.json",
     "./fixtures/conformance/manifest.json": "./fixtures/conformance/manifest.json"
   },
-  "files": ["dist/src", "README.md", "LICENSE", "docs", "schemas", "fixtures/conformance"],
+  "files": [
+    "dist/src",
+    "README.md",
+    "LICENSE",
+    "docs",
+    "schemas",
+    "fixtures/conformance"
+  ],
   "engines": {
     "node": ">=22"
   },
@@ -30,8 +37,8 @@
     "demo": "npm run build && node dist/src/cli.js demo artifacts/demo",
     "check": "npm run test && npm run demo"
   },
-  "dependencies": {},
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.0.0",
     "@types/node": "^22.10.0",
     "ajv": "^8.17.1",
     "typescript": "^5.7.0"

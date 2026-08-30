@@ -3,3 +3,4 @@ export * from "./demo.js";
 export * from "./policy.js";
 export * from "./report.js";
 export * from "./simulator.js";
+export * from "./stdio.js";
