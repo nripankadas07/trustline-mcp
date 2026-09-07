@@ -17,6 +17,8 @@ All notable changes follow Keep a Changelog principles.
 
 ### Changed
 
+- Reject a bare `xn--` ACE prefix explicitly so hostname-policy validation
+  remains fail closed across Node URL-parser revisions, including Node 24.20.
 - Replace dynamic regular-expression construction for tool-name globs with an
   explicit wildcard state machine while preserving the existing anchored `*`
   behavior.
