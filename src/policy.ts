@@ -464,6 +464,10 @@ function extractHost(value: unknown): string | undefined {
   try {
     const parsed = new URL(ABSOLUTE_URL_PATTERN.test(value) ? value : `https://${value}`);
     const hostname = domainToASCII(parsed.hostname).toLowerCase();
+    // Node 24.20's URL implementation began preserving a bare `xn--` label.
+    // It is only the ACE prefix, not a usable Punycode hostname, so reject it
+    // explicitly instead of making policy validation depend on runtime drift.
+    if (hostname.split(".").includes("xn--")) return undefined;
     if (hostname.startsWith("*.") || !HOST_PATTERN.test(hostname)) return undefined;
     const canonical = hostname.endsWith(".") ? hostname.slice(0, -1) : hostname;
     return canonical.length > 0 ? canonical : undefined;

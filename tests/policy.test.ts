@@ -78,7 +78,7 @@ test("path and host allowlists fail closed on missing, non-string, and malformed
     assert.equal(decision.effect, "deny");
     assert.ok(decision.reasonCodes.includes("path-invalid"));
   }
-  for (const url of [undefined, 42, "", "http://[", "https://docs.example.test../x"]) {
+  for (const url of [undefined, 42, "", "http://[", "https://docs.example.test../x", "https://xn--/"]) {
     const args = url === undefined ? {} : { url };
     const decision = engine.evaluate({ name: "docs.search", arguments: args });
     assert.equal(decision.effect, "deny");
