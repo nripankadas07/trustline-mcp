@@ -4,9 +4,11 @@
 
 - Publish the audit JSON Schema and extend the compatibility fixtures. The
   policy JSON Schema and its initial conformance matrix are available now.
-- The real opt-in MCP `2026-07-28` stdio policy-lab service is available through
-  `serve-stdio`, with process-isolation guidance and official-client coverage.
-  Downstream tool proxying remains future work.
+- Real opt-in MCP `2026-07-28` stdio and loopback-only stateless Streamable
+  HTTP policy-lab services are available through `serve-stdio` and
+  `serve-http`, with process-isolation guidance and official-client coverage.
+  Authenticated remote hosting and downstream tool proxying remain future
+  work.
 - Add richer JSON-path predicates and policy coverage reports.
 
 ## 0.3

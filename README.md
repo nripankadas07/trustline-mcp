@@ -2,7 +2,7 @@
 
 Trustline MCP is a deterministic, zero-runtime-dependency policy lab for MCP-style `tools/call` JSON-RPC transcripts. It evaluates deny-overrides rules, simulates allowed fixture tools without executing commands, redacts request and response secrets, and writes a chained audit that can be verified after the run.
 
-It also provides an opt-in MCP `2026-07-28` stdio service so real clients can invoke the simulator and verifier. The service is a transport for the offline policy lab, not a transparent tool proxy: it does **not** claim production OAuth enforcement, downstream tool execution, network interception, HTTP proxying, or sandbox isolation.
+It also provides opt-in MCP `2026-07-28` stdio and loopback-only Streamable HTTP services so real clients can invoke the simulator and verifier. These are transports for the offline policy lab, not transparent tool proxies: they do **not** claim production OAuth enforcement, downstream tool execution, network interception, remote-service authorization, or sandbox isolation.
 
 ![Trustline MCP deterministic policy and audit report](assets/demo.jpg)
 
@@ -21,6 +21,8 @@ It also provides an opt-in MCP `2026-07-28` stdio service so real clients can in
 - Demo outputs are deterministic JSON, Markdown, and a self-contained HTML report.
 - `serve-stdio` exposes the simulator and verifier to current MCP clients without
   adding a runtime SDK dependency or relying on connection state.
+- `serve-http` exposes the same deterministic catalog through stateless MCP
+  `2026-07-28` Streamable HTTP on an explicitly local-only endpoint.
 
 ## Quick start
 
@@ -100,6 +102,40 @@ environment, least-privilege account, dedicated working directory, and
 operating-system CPU and memory limits. Closing stdin is the graceful shutdown
 signal.
 
+## MCP Streamable HTTP quickstart
+
+Start the same two-tool policy lab on `http://127.0.0.1:8787/mcp`:
+
+```bash
+npm run build
+node dist/src/cli.js serve-http
+```
+
+The optional positional argument changes the port, for example
+`serve-http 9000`. The host is intentionally fixed to `127.0.0.1`; this
+command is not a remote deployment recipe.
+
+Run a direct discovery request from another terminal:
+
+```bash
+curl --fail-with-body --silent --show-error \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'Content-Type: application/json' \
+  -H 'MCP-Protocol-Version: 2026-07-28' \
+  -H 'Mcp-Method: server/discover' \
+  --data '{"jsonrpc":"2.0","id":"discover-1","method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"http-smoke","version":"1.0.0"},"io.modelcontextprotocol/clientCapabilities":{}}}}' \
+  http://127.0.0.1:8787/mcp
+```
+
+The HTTP service accepts one JSON-RPC request per `POST` and returns a direct
+JSON response. It validates `MCP-Protocol-Version`, `Mcp-Method`, and the
+method-specific `Mcp-Name` header against the body; limits request and response
+sizes; rejects non-loopback browser origins; and does not create sessions. It
+does not implement OAuth, bearer-token authentication, SSE subscriptions, or
+remote exposure. Loopback is not an authorization boundary against other local
+processes, so retain the same least-privilege and operating-system resource
+limits recommended for `serve-stdio`.
+
 ## Decision model
 
 For one tool call, Trustline collects every matching rule and resolves it in this order:
@@ -154,6 +190,8 @@ An audit bundle contains the complete declared policy, its canonical digest, and
 - `src/simulator.ts` — JSON-RPC parsing, fixture invocation, audit chaining, verification.
 - `src/canonical.ts` — deterministic JSON, hashing, and redaction.
 - `src/report.ts` — JSON, Markdown, and single-file HTML artifacts.
+- `src/stdio.ts` / `src/http.ts` — bounded MCP `2026-07-28` stdio and
+  loopback Streamable HTTP transports.
 - `fixtures/` — line-oriented attack transcript (including one intentional
   malformed record) and matching policy.
 - `tests/` — policy unit tests and end-to-end artifact/tamper tests.

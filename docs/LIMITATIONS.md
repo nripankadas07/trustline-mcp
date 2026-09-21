@@ -1,12 +1,17 @@
 # Limitations
 
-- This is an offline JSON-RPC transcript simulator with an opt-in modern MCP
-  stdio service, not a transparent MCP proxy. The service supports
+- This is an offline JSON-RPC transcript simulator with opt-in modern MCP stdio
+  and Streamable HTTP services, not a transparent MCP proxy. Both support
   `server/discover`, `tools/list`, and `tools/call` for `trustline.simulate` and
-  `trustline.verify`; it does not forward arbitrary tools.
-- The stdio service supports MCP `2026-07-28` only. It intentionally rejects the
-  legacy `initialize` handshake and does not yet provide Streamable HTTP.
-- Modern MCP applies to the outer service. The inner
+  `trustline.verify`; they do not forward arbitrary tools.
+- Both services support MCP `2026-07-28` only and intentionally reject the
+  legacy `initialize` handshake.
+- Streamable HTTP is a stateless, direct-JSON, `POST`-only slice. It binds to
+  `127.0.0.1`, rejects non-loopback browser origins, and does not provide OAuth,
+  bearer-token authentication, TLS, SSE responses, `subscriptions/listen`,
+  resumability, or remote deployment. Loopback limits network exposure but does
+  not authenticate local processes.
+- Modern MCP applies to the outer services. The inner
   `trustline.transcript/v1` format remains a simplified deterministic replay
   input and is not an MCP conformance trace. `approvedBy` is unverified replay
   data, not an authenticated approval receipt.
