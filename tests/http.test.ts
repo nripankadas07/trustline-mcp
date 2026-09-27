@@ -118,6 +118,18 @@ test("Streamable HTTP validates routing headers and remains stateless", async ()
     assert.equal(unknownTool.status, 200);
     assert.equal(((await responseJson(unknownTool)).error as { code: number }).code, -32602);
 
+    for (const [index, name] of ["__proto__", "constructor", "toString"].entries()) {
+      const inheritedName = await fetch(url, {
+        method: "POST",
+        headers: mcpHeaders("tools/call", name),
+        body: JSON.stringify(rpcRequest(40 + index, "tools/call", { name, arguments: {} })),
+      });
+      assert.equal(inheritedName.status, 200);
+      const error = (await responseJson(inheritedName)).error as { code: number; message: string };
+      assert.equal(error.code, -32602);
+      assert.equal(error.message, `Unknown tool: ${name}`);
+    }
+
     const duplicatedMethod = await rawPost(url, [
       "Accept", "application/json, text/event-stream",
       "Content-Type", "application/json",

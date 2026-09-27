@@ -103,7 +103,11 @@ test("metadata, methods, tools, and transcript bounds fail closed", () => {
   assert.deepEqual((versionError.data as { supported: string[] }).supported, [MCP_PROTOCOL_VERSION]);
 
   assert.equal(errorOf(handleMcpMessage(request(3, "unknown/method"))).code, -32601);
-  assert.equal(errorOf(handleMcpMessage(request(4, "tools/call", { name: "unknown.tool", arguments: {} }))).code, -32602);
+  for (const name of ["unknown.tool", "__proto__", "constructor", "toString", "trustline.simulate.extra"]) {
+    const unknownTool = errorOf(handleMcpMessage(request(4, "tools/call", { name, arguments: {} })));
+    assert.equal(unknownTool.code, -32602);
+    assert.equal(unknownTool.message, `Unknown tool: ${name}`);
+  }
   assert.equal(errorOf(handleMcpMessage(request(41, "tools/list", { cursor: "unexpected" }))).code, -32602);
 
   for (const id of [null, true, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
