@@ -15,6 +15,8 @@ export const MAX_SIMULATION_WORK_UNITS = 8_000_000;
 export const MAX_MCP_RESPONSE_BYTES = 2_097_152;
 
 const SERVER_INFO = { name: "trustline-mcp", version: "0.1.1" } as const;
+const SIMULATE_TOOL_NAME = "trustline.simulate" as const;
+const VERIFY_TOOL_NAME = "trustline.verify" as const;
 
 type RequestId = string | number;
 
@@ -36,7 +38,7 @@ class SafeInputError extends Error {}
 
 const TOOLS = [
   {
-    name: "trustline.simulate",
+    name: SIMULATE_TOOL_NAME,
     title: "Simulate a Trustline policy transcript",
     description: "Evaluate a complete offline JSON-RPC transcript against a Trustline policy and return a redacted, tamper-evident audit bundle. No commands, network calls, or files are accessed.",
     inputSchema: {
@@ -55,7 +57,7 @@ const TOOLS = [
     },
   },
   {
-    name: "trustline.verify",
+    name: VERIFY_TOOL_NAME,
     title: "Verify a Trustline audit bundle",
     description: "Verify the schema, declared policy digest, indexes, links, and hashes of a trustline.audit-bundle/v1 value.",
     inputSchema: {
@@ -186,39 +188,52 @@ function validateTranscript(value: unknown): { bytes: number; entries: number } 
   return { bytes: totalBytes, entries: value.length };
 }
 
+type ToolHandler = (argumentsValue: Record<string, unknown>) => Record<string, unknown>;
+
+function simulateTool(argumentsValue: Record<string, unknown>): Record<string, unknown> {
+  if (!hasExactKeys(argumentsValue, ["policy", "transcript"])) return toolInputError("trustline.simulate requires exactly policy and transcript");
+  try {
+    const transcript = argumentsValue.transcript;
+    const transcriptSize = validateTranscript(transcript);
+    assertPolicyWorkLimit(argumentsValue.policy, transcriptSize.bytes, transcriptSize.entries);
+    const simulation = simulateTranscript(argumentsValue.policy as Policy, transcript as string[]);
+    const audit = auditBundle(simulation);
+    const verification = verifyAudit(audit);
+    return toolResult(
+      {
+        version: simulation.version,
+        policyName: simulation.policyName,
+        policyDigest: simulation.policyDigest,
+        totals: simulation.totals,
+        audit,
+        verification,
+      },
+      { totals: simulation.totals, policyDigest: simulation.policyDigest, verification },
+      false,
+    );
+  } catch (error: unknown) {
+    return toolInputError(error instanceof SafeInputError ? error.message : "policy or transcript input is invalid");
+  }
+}
+
+function verifyTool(argumentsValue: Record<string, unknown>): Record<string, unknown> {
+  if (!hasExactKeys(argumentsValue, ["audit"])) return toolInputError("trustline.verify requires exactly audit");
+  const verification = verifyAudit(argumentsValue.audit);
+  return toolResult(verification, verification, !verification.valid);
+}
+
+// Convert the untrusted wire name through a closed allowlist before invoking
+// behavior. A Map avoids inherited-property dispatch for names such as
+// "__proto__" and keeps request data out of permission-style conditionals.
+const TOOL_HANDLERS: ReadonlyMap<string, ToolHandler> = new Map([
+  [SIMULATE_TOOL_NAME, simulateTool],
+  [VERIFY_TOOL_NAME, verifyTool],
+]);
+
 function invokeTool(name: string, argumentsValue: Record<string, unknown>): Record<string, unknown> | JsonRpcErrorResponse {
-  if (name === "trustline.simulate") {
-    if (!hasExactKeys(argumentsValue, ["policy", "transcript"])) return toolInputError("trustline.simulate requires exactly policy and transcript");
-    try {
-      const transcript = argumentsValue.transcript;
-      const transcriptSize = validateTranscript(transcript);
-      assertPolicyWorkLimit(argumentsValue.policy, transcriptSize.bytes, transcriptSize.entries);
-      const simulation = simulateTranscript(argumentsValue.policy as Policy, transcript as string[]);
-      const audit = auditBundle(simulation);
-      const verification = verifyAudit(audit);
-      return toolResult(
-        {
-          version: simulation.version,
-          policyName: simulation.policyName,
-          policyDigest: simulation.policyDigest,
-          totals: simulation.totals,
-          audit,
-          verification,
-        },
-        { totals: simulation.totals, policyDigest: simulation.policyDigest, verification },
-        false,
-      );
-    } catch (error: unknown) {
-      return toolInputError(error instanceof SafeInputError ? error.message : "policy or transcript input is invalid");
-    }
-  }
-
-  if (name === "trustline.verify") {
-    if (!hasExactKeys(argumentsValue, ["audit"])) return toolInputError("trustline.verify requires exactly audit");
-    const verification = verifyAudit(argumentsValue.audit);
-    return toolResult(verification, verification, !verification.valid);
-  }
-
+  if (!TOOL_HANDLERS.has(name)) return errorResponse(undefined, -32602, `Unknown tool: ${name}`);
+  const handler = TOOL_HANDLERS.get(name);
+  if (typeof handler === "function") return handler(argumentsValue);
   return errorResponse(undefined, -32602, `Unknown tool: ${name}`);
 }
 

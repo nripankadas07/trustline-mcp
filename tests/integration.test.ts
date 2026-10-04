@@ -107,11 +107,26 @@ test("JSON-RPC notifications retain their audit decision without emitting a resp
   assert.equal(verifyAudit(auditBundle(result)).valid, true);
 });
 
-test("CLI rejects trailing operands and option-like output paths", () => {
-  for (const args of [["demo", "out", "extra"], ["demo", "--typo"], ["verify", "audit.json", "extra"]]) {
+test("CLI advertises Streamable HTTP and rejects invalid operands", () => {
+  const help = spawnSync(process.execPath, ["dist/src/cli.js", "--help"], { encoding: "utf8" });
+  assert.equal(help.status, 0);
+  assert.match(help.stdout, /serve-stdio/u);
+  assert.match(help.stdout, /serve-http \[PORT\]/u);
+
+  for (const args of [
+    ["demo", "out", "extra"],
+    ["demo", "--typo"],
+    ["verify", "audit.json", "extra"],
+    ["serve-http", "0"],
+    ["serve-http", "65536"],
+    ["serve-http", "3.5"],
+    ["serve-http", "0x50"],
+    ["serve-http", "1e3"],
+    ["serve-http", "--port"],
+  ]) {
     const cli = spawnSync(process.execPath, ["dist/src/cli.js", ...args], { encoding: "utf8" });
     assert.equal(cli.status, 1);
-    assert.match(cli.stderr, /usage:/u);
+    assert.match(cli.stderr, /usage:|serve-http PORT/u);
   }
 });
 

@@ -17,10 +17,10 @@ All quota rules matching a tool are evaluated and, on an allowed call, increment
 
 The simulator intentionally separates policy behavior from transport behavior. It parses JSON-RPC-shaped lines but does not bind a socket or impersonate an MCP server.
 
-## MCP stdio service
+## MCP services
 
-`trustline-mcp serve-stdio` adds a real outer MCP transport around the existing
-offline lab:
+`trustline-mcp serve-stdio` and `trustline-mcp serve-http` add real outer MCP
+transports around the existing offline lab:
 
 ```text
 client stdin -> bounded UTF-8 newline frame -> JSON-RPC + per-request metadata
@@ -30,23 +30,35 @@ client stdin -> bounded UTF-8 newline frame -> JSON-RPC + per-request metadata
              -> MCP tool result -> stdout JSON-RPC line
 ```
 
+```text
+loopback HTTP POST -> origin/media-type/byte bounds -> routing-header mirror
+                   -> shared JSON-RPC + per-request metadata handler
+                   -> direct application/json response
+```
+
 The outer protocol implements the modern `2026-07-28` stateless request model.
 It never caches client identity, capabilities, or protocol version between
 requests. The catalog is deterministic and every result identifies the server.
-The official `@modelcontextprotocol/client` v2 stdio client is used as a
-development-only interoperability test; the shipped package retains zero
+The HTTP service binds only to `127.0.0.1`, uses the same per-request stateless
+handler, and accepts direct JSON responses rather than opening an SSE stream.
+It verifies the MCP protocol version, method, and method-specific name headers
+against the body before dispatch. Browser `Origin` values are restricted to
+loopback origins as a DNS-rebinding defense. The official
+`@modelcontextprotocol/client` v2 stdio and Streamable HTTP transports are used
+as development-only interoperability tests; the shipped package retains zero
 runtime dependencies.
 
 The inner `trustline.transcript/v1` payload is deliberately separate. It is a
 simplified replay input, not proof that the recorded messages conform to the
 current MCP revision. In particular, its `approvedBy` field is unverified replay
 data. Quota state begins at zero for each `trustline.simulate` invocation and is
-never inferred from the stdio process lifetime.
+never inferred from a transport or process lifetime.
 
 Requests are handled synchronously after bounded parsing. Valid notifications
-produce no response and do not invoke tools. There is no long-running operation
-to cancel in this slice; EOF is honored after the current bounded request and
-then the process exits.
+produce no JSON-RPC response and do not invoke tools (`202 Accepted` over
+HTTP). There is no long-running operation to cancel in this slice; EOF is
+honored after the current bounded stdio request, and SIGINT or SIGTERM closes
+the HTTP listener after active requests finish.
 
 The independent message, transcript, and rule maxima are backed by an aggregate
 8,000,000-unit admission budget. The estimator weights the complete policy
@@ -62,7 +74,10 @@ than a dynamically constructed regular expression.
 
 - Trusted for the demo: checked-in policy, checked-in transcript, local Node runtime.
 - Untrusted and redacted: request/response content. JSON-RPC IDs, methods, names, and arguments are runtime-validated before a fixture call.
-- Untrusted for the stdio service: every input byte, outer request field, policy,
-  inner transcript, and audit bundle. Byte, structure, and evaluation bounds are
-  applied before the policy engine or verifier runs.
-- Not provided: process isolation, network isolation, identity verification, durable quota storage, multi-process synchronization.
+- Untrusted for both services: every input byte, outer request field, policy,
+  inner transcript, and audit bundle. HTTP headers and origins are untrusted as
+  well. Byte, structure, and evaluation bounds are applied before the policy
+  engine or verifier runs.
+- Not provided: process isolation, network isolation, HTTP authentication,
+  identity verification, durable quota storage, or multi-process
+  synchronization. A loopback listener is reachable by other local processes.

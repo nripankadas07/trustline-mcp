@@ -4,9 +4,10 @@ import { attackTranscript, demoPolicy } from "./demo.js";
 import type { Policy } from "./policy.js";
 import { writeArtifacts } from "./report.js";
 import { auditBundle, simulateTranscript, verifyAudit } from "./simulator.js";
+import { DEFAULT_MCP_HTTP_PORT, runStreamableHttp } from "./http.js";
 import { runStdio } from "./stdio.js";
 
-const USAGE = "trustline-mcp demo [OUT]\ntrustline-mcp simulate POLICY.json TRANSCRIPT.jsonl [OUT]\ntrustline-mcp verify AUDIT.json\ntrustline-mcp serve-stdio";
+const USAGE = "trustline-mcp demo [OUT]\ntrustline-mcp simulate POLICY.json TRANSCRIPT.jsonl [OUT]\ntrustline-mcp verify AUDIT.json\ntrustline-mcp serve-stdio\ntrustline-mcp serve-http [PORT]";
 type CommandHandler = (operands: string[]) => Promise<number>;
 
 const demo: CommandHandler = async (operands) => {
@@ -46,6 +47,16 @@ const serveStdio: CommandHandler = async (operands) => {
   return 0;
 };
 
+const serveHttp: CommandHandler = async (operands) => {
+  if (operands.length > 1 || operands[0]?.startsWith("-") === true) throw new Error("usage: trustline-mcp serve-http [PORT]");
+  const rawPort = operands[0];
+  if (rawPort !== undefined && !/^[1-9][0-9]{0,4}$/u.test(rawPort)) throw new Error("serve-http PORT must be a decimal integer from 1 to 65535");
+  const port = rawPort === undefined ? DEFAULT_MCP_HTTP_PORT : Number(rawPort);
+  if (port > 65_535) throw new Error("serve-http PORT must be a decimal integer from 1 to 65535");
+  await runStreamableHttp(port);
+  return 0;
+};
+
 const help: CommandHandler = async (operands) => {
   if (operands.length > 0) throw new Error("help does not accept operands");
   console.log(USAGE);
@@ -59,6 +70,7 @@ async function main(args: string[]): Promise<number> {
     case "simulate": return simulate(operands);
     case "verify": return verify(operands);
     case "serve-stdio": return serveStdio(operands);
+    case "serve-http": return serveHttp(operands);
     case "help":
     case "--help":
     case "-h": return help(operands);

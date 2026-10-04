@@ -6,6 +6,13 @@ All notable changes follow Keep a Changelog principles.
 
 ### Added
 
+- Add a zero-runtime-dependency, loopback-only MCP `2026-07-28` Streamable HTTP
+  service with stateless direct-JSON responses, mirrored routing-header
+  validation, origin checks, bounded bodies, and graceful shutdown.
+- Validate the HTTP implementation with the official MCP v2 client, installed
+  package smoke coverage, and adversarial transport tests for malformed media,
+  duplicate routing headers, invalid UTF-8, oversized requests, and foreign
+  browser origins.
 - Add a dependency-free MCP `2026-07-28` stdio service with discovery and a
   deterministic two-tool catalog for transcript simulation and audit
   verification.

@@ -2,7 +2,8 @@ import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Client } from "@modelcontextprotocol/client";
+import { pathToFileURL } from "node:url";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 const packageJson = JSON.parse(await readFile("package.json", "utf8"));
@@ -57,7 +58,25 @@ try {
   } finally {
     await client.close();
   }
-  console.log(JSON.stringify({ package: packageName, archive: archives[0], import: "ok", artifacts: "ok", cli: "ok", stdio: "ok", runtimeDependencies: 0 }));
+
+  const installedLibraryUrl = pathToFileURL(join(consumer, "node_modules", packageName, "dist", "src", "index.js"));
+  const installedLibrary = await import(installedLibraryUrl.href);
+  const { server, url } = await installedLibrary.listenStreamableHttp(0);
+  const httpTransport = new StreamableHTTPClientTransport(url);
+  const httpClient = new Client(
+    { name: `${packageName}-http-package-smoke`, version: "1.0.0" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+  );
+  try {
+    await httpClient.connect(httpTransport);
+    const tools = (await httpClient.listTools()).tools.map((tool) => tool.name);
+    if (httpClient.getProtocolEra() !== "modern") throw new Error("installed HTTP server did not negotiate modern MCP");
+    if (JSON.stringify(tools) !== JSON.stringify(["trustline.simulate", "trustline.verify"])) throw new Error("installed HTTP server returned an unexpected tool catalog");
+  } finally {
+    await httpClient.close();
+    await new Promise((resolve, reject) => server.close((error) => error === undefined ? resolve() : reject(error)));
+  }
+  console.log(JSON.stringify({ package: packageName, archive: archives[0], import: "ok", artifacts: "ok", cli: "ok", stdio: "ok", streamableHttp: "ok", runtimeDependencies: 0 }));
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }
