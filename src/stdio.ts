@@ -231,8 +231,9 @@ const TOOL_HANDLERS: ReadonlyMap<string, ToolHandler> = new Map([
 ]);
 
 function invokeTool(name: string, argumentsValue: Record<string, unknown>): Record<string, unknown> | JsonRpcErrorResponse {
+  if (!TOOL_HANDLERS.has(name)) return errorResponse(undefined, -32602, `Unknown tool: ${name}`);
   const handler = TOOL_HANDLERS.get(name);
-  if (handler !== undefined) return handler(argumentsValue);
+  if (typeof handler === "function") return handler(argumentsValue);
   return errorResponse(undefined, -32602, `Unknown tool: ${name}`);
 }
 
