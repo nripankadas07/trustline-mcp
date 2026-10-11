@@ -1,5 +1,7 @@
 # Trustline MCP
 
+**Try it and help shape the next release:** [short user pilot](docs/USER_PILOT.md) · [give feedback](https://github.com/nripankadas07/trustline-mcp/issues/new?template=user_feedback.yml).
+
 Trustline MCP is a deterministic, zero-runtime-dependency policy lab for MCP-style `tools/call` JSON-RPC transcripts. It evaluates deny-overrides rules, simulates allowed fixture tools without executing commands, redacts request and response secrets, and writes a chained audit that can be verified after the run.
 
 It also provides opt-in MCP `2026-07-28` stdio and loopback-only Streamable HTTP services so real clients can invoke the simulator and verifier. These are transports for the offline policy lab, not transparent tool proxies: they do **not** claim production OAuth enforcement, downstream tool execution, network interception, remote-service authorization, or sandbox isolation.

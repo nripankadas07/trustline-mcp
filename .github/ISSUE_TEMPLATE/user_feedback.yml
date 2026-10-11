@@ -1,0 +1,92 @@
+name: First-use feedback
+description: Tell us what you tried, what helped, and where you got stuck.
+title: "[Feedback]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for trying the project. Critical and blocked experiences are welcome.
+        This issue and your GitHub identity will be public. Do not include credentials,
+        personal records, employer/customer data, or raw private input files.
+        The maintainer may reply here; this does not subscribe you to outreach.
+  - type: dropdown
+    id: route
+    attributes:
+      label: How did you try it?
+      options:
+        - Browser report review
+        - Local bundled-input experiment
+        - Local experiment based on my own workflow
+    validations:
+      required: true
+  - type: input
+    id: task
+    attributes:
+      label: What were you trying to understand or accomplish?
+      placeholder: One task or question; no private context needed.
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Did you complete that task?
+      options:
+        - Completed without help
+        - Completed with help
+        - Partly completed
+        - Blocked
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Version and environment
+      description: Browser route URL/date, or commit, operating system, and Node/Python version.
+    validations:
+      required: true
+  - type: textarea
+    id: observation
+    attributes:
+      label: One useful result or confusing point
+      description: Include expected versus observed behavior, a rule/call/step/metric, or a sanitized screenshot. A specific blocker is useful feedback too.
+    validations:
+      required: true
+  - type: input
+    id: minutes
+    attributes:
+      label: Approximate minutes to first useful result (optional)
+      description: Include setup time. Leave blank if you never reached one.
+  - type: textarea
+    id: improvement
+    attributes:
+      label: What would make you use this again? (optional)
+      description: A change, integration, or concrete task. It is fine to say you would not use it again.
+  - type: dropdown
+    id: discovery
+    attributes:
+      label: Where did you find this? (optional)
+      options:
+        - GitHub profile or repository
+        - MCP community
+        - Openmod community
+        - Mind the Product or ProductTank
+        - Another source
+  - type: dropdown
+    id: followup
+    attributes:
+      label: May the maintainer ask one follow-up here after a fix?
+      options:
+        - No follow-up request
+        - Yes, one follow-up in this issue is welcome
+    validations:
+      required: true
+  - type: dropdown
+    id: quotation
+    attributes:
+      label: May this feedback be quoted in a case study?
+      description: Separate permission from participation. Permission does not imply endorsement; confirm the exact wording before publication.
+      options:
+        - No, do not quote my feedback
+        - Ask me to approve an exact quote first
+    validations:
+      required: true
